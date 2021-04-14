@@ -1,31 +1,41 @@
 (ns simulator40k.core
   (:require
-   [cljs.pprint :refer [pprint]]
-    [reagent.core :as r]
-    [reagent.dom :as rdom]
-    [goog.events :as events]
-    [goog.history.EventType :as HistoryEventType]
-    [markdown.core :refer [md->html]]
-    [simulator40k.ajax :as ajax]
-    [ajax.core :refer [GET POST]]
-    [reitit.core :as reitit]
-    [clojure.string :as string])
+   [b1.charts :as c]
+   [b1.svg :as s]
+   [reagent.core :as r]
+   [reagent.dom :as rdom]
+   [goog.events :as events]
+   [goog.history.EventType :as HistoryEventType]
+   [markdown.core :refer [md->html]]
+   [simulator40k.ajax :as ajax]
+   [ajax.core :refer [GET POST]]
+   [reitit.core :as reitit]
+   [clojure.string :as string])
   (:import goog.History))
 
 (def empty-state
-  {:page :home
+  {:graph-data        :nil
+   :page              :home
    :show-upload-files true
-   :show-results false
-   :files {:Attacker nil
-           :Defender nil}})
+   :show-results      false
+   :show-graph        false
+   :files             {:Attacker nil
+                       :Defender nil}})
 
 (defonce session (r/atom empty-state))
+
+(defn generate-graph-data []
+  (take 100 (repeatedly rand)))
+
+(defn graph []
+  (-> (c/histogram (:graph-data @session) :x-axis [0 1] :n-bins 10)
+      (s/as-svg :width 500 :height 200)))
 
 (defn title []
   [:div.columns
    [:div.column
     [:div.title
-     [:a {:href "/#"
+     [:a {:href     "/#"
           :on-click (fn [_]
                       (reset! session empty-state))}
       [:h1 "Simulator 40k"]]]]
@@ -35,20 +45,20 @@
   [:div.field
    [:label.label (str (name role) " roaster:")]
    [:div.file
-     [:label.file-label.full-width
-      [:input.file-input {:name "resume", :type "file"
-                          :on-change (fn [e]
-                                       (swap! session assoc-in [:files role] (-> e .-target .-value))
-                                       )}]
-      [:span.file-cta.full-width
-       [:span.file-icon [:i.fas.fa-upload]]
-       [:span.file-label "\n        Choose a file…\n      "]]
-      [:span.file-name (role (:files @session))]]]])
+    [:label.file-label.full-width
+     [:input.file-input {:name      "resume", :type "file"
+                         :on-change (fn [e]
+                                      (swap! session assoc-in [:files role] (-> e .-target .-value))
+                                      )}]
+     [:span.file-cta.full-width
+      [:span.file-icon [:i.fas.fa-upload]]
+      [:span.file-label "\n        Choose a file…\n      "]]
+     [:span.file-name (role (:files @session))]]]])
 
-(defn dropdown-units [type-unit units]
+(defn dropdown-units [units]
   [:div.field
    [:div.select.is-dark.full-width
-    [:select.full-width [:option type-unit]
+    [:select.full-width
      (for [u units]
        ^{:key u} [:option u])]]])
 
@@ -59,34 +69,34 @@
     [:div.field-label.is-normal
      [:label.label "BS:"]]
     [:input.input
-     {:placeholder "BS:", :type "text" :value bs}]]
+     {:type "text" :value bs}]]
    [:h1 "Attacker's Weapon"]
    [:div.field.is-horizontal
     [:div.field-label.is-normal
      [:label.label "AP:"]]
     [:input.input
-     {:placeholder "AP:", :type "text" :value ap}]]
+     {:type "text" :value ap}]]
    [:div.field.is-horizontal
     [:div.field-label.is-normal
      [:label.label "Attacks:"]]
     [:input.input
-     {:placeholder "Attacks", :type "text" :value attacks}]]
+     {:type "text" :value attacks}]]
    [:div.field.is-horizontal
     [:div.field-label.is-normal
      [:label.label "Strength:"]]
     [:input.input
-     {:placeholder "Strength:", :type "text" :value strength}]]
+     {:type "text" :value strength}]]
    [:h1 "Defender"]
    [:div.field.is-horizontal
     [:div.field-label.is-normal
      [:label.label "Save:"]]
     [:input.input
-     {:placeholder "Save:", :type "text" :value save}]]
+     {:type "text" :value save}]]
    [:div.field.is-horizontal
     [:div.field-label.is-normal
      [:label.label "Toughness:"]]
     [:input.input
-     {:placeholder "Toughness:", :type "text" :value toughness}]]]
+     {:type "text" :value toughness}]]]
   )
 
 
@@ -106,24 +116,28 @@
      (upload-rosters))
    (when-not (:show-upload-files @session)
      (list [:div.columns
-            [:div.column (dropdown-units "Attacker" ["Attacker1" "Attacker2"])]]
+            [:div.column (dropdown-units ["Attacker1" "Attacker2"])]]
            [:div.columns
-            [:div.column (dropdown-units "Attacker weapons" ["weapon1" "weapon2"])]]
+            [:div.column (dropdown-units ["Weapon1" "Weapon2"])]]
            [:div.columns
-            [:div.column (dropdown-units "Defender" ["Defender1" "Defender2"])]]
+            [:div.column (dropdown-units ["Defender1" "Defender2"])]]
            [:button.button.is-dark
             {:name     "select-units"
              :on-click (fn [e]
                          (.preventDefault e)
-                         (swap! session assoc :show-results true))} "Select"])
-      )
+                         (swap! session assoc :show-results true)
+                         )} "Select"])
+     )
    (when (:show-results @session)
      (list [:div.columns [:div.column (render-unit {:bs "3+"})]]
            [:button.button.is-dark
             {:name     "fight"
              :on-click (fn [e]
                          (.preventDefault e)
-                         (swap! session assoc :show-results true))} "Fight"]))])
+                         (swap! session assoc :graph-data (generate-graph-data))
+                         (swap! session assoc :show-graph true))} "Fight"]))
+   (when (:show-graph @session)
+     (graph))])
 
 (def pages
   {:home #'home-page})
@@ -136,7 +150,7 @@
 
 (def router
   (reitit/router
-    [["/" :home]]))
+   [["/" :home]]))
 
 (defn match-route [uri]
   (->> (or (not-empty (string/replace uri #"^.*#" "")) "/")
@@ -149,9 +163,9 @@
 (defn hook-browser-navigation! []
   (doto (History.)
     (events/listen
-      HistoryEventType/NAVIGATE
-      (fn [^js/Event.token event]
-        (swap! session assoc :page (match-route (.-token event)))))
+     HistoryEventType/NAVIGATE
+     (fn [^js/Event.token event]
+       (swap! session assoc :page (match-route (.-token event)))))
     (.setEnabled true)))
 
 ;; -------------------------
