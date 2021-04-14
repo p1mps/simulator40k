@@ -22,16 +22,6 @@
     {% style "/assets/material-icons/css/material-icons.min.css" %}
     {% style "/css/screen.css" %}
 
-    <script>
-     const fileInput = document.querySelector('input[type=file]');
-     fileInput.onchange = () => {
-         if (fileInput.files.length > 0) {
-             const fileName = document.querySelector('.file-name');
-             fileName.textContent = fileInput.files[0].name;
-         }
-     }
-    </script>
-
     <script type="text/javascript">
         var csrfToken = "{{csrf-token}}";
     </script>

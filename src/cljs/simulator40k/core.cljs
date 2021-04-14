@@ -12,7 +12,10 @@
     [clojure.string :as string])
   (:import goog.History))
 
-(defonce session (r/atom {:page :home
+(defonce session (r/atom {:page
+                          :home
+                          :show-upload-files true
+                          :show-results false
                           :files {:Attacker nil
                                   :Defender nil}}))
 
@@ -26,31 +29,95 @@
   [:div.field
    [:label.label (str (name role) " roaster:")]
    [:div.file
-     [:label.file-label
+     [:label.file-label.full-width
       [:input.file-input {:name "resume", :type "file"
                           :on-change (fn [e]
-                                       (swap! session assoc-in [:files role] (-> e .-target .-value)))}]
-      [:span.file-cta
+                                       (swap! session assoc-in [:files role] (-> e .-target .-value))
+                                       )}]
+      [:span.file-cta.full-width
        [:span.file-icon [:i.fas.fa-upload]]
        [:span.file-label "\n        Choose a file…\n      "]]
       [:span.file-name (role (:files @session))]]]])
+
+(defn dropdown-units [type-unit units]
+  [:div.field
+   [:div.select.is-dark.full-width
+    [:select.full-width [:option type-unit]
+     (for [u units]
+       ^{:key u} [:option u])]]])
+
+(defn render-unit [{:keys [bs attacks ap strength save toughness]}]
+  [:div.margin
+   [:h1 "Attacker"]
+   [:div.field.is-horizontal
+    [:div.field-label.is-normal
+     [:label.label "BS:"]]
+    [:input.input
+     {:placeholder "BS:", :type "text" :value bs}]]
+   [:h1 "Attacker's Weapon"]
+   [:div.field.is-horizontal
+    [:div.field-label.is-normal
+     [:label.label "AP:"]]
+    [:input.input
+     {:placeholder "AP:", :type "text" :value ap}]]
+   [:div.field.is-horizontal
+    [:div.field-label.is-normal
+     [:label.label "Attacks:"]]
+    [:input.input
+     {:placeholder "Attacks", :type "text" :value attacks}]]
+   [:div.field.is-horizontal
+    [:div.field-label.is-normal
+     [:label.label "Strength:"]]
+    [:input.input
+     {:placeholder "Strength:", :type "text" :value strength}]]
+   [:h1 "Defender"]
+   [:div.field.is-horizontal
+    [:div.field-label.is-normal
+     [:label.label "Save:"]]
+    [:input.input
+     {:placeholder "Save:", :type "text" :value save}]]
+   [:div.field.is-horizontal
+    [:div.field-label.is-normal
+     [:label.label "Toughness:"]]
+    [:input.input
+     {:placeholder "Toughness:", :type "text" :value toughness}]]]
+  )
 
 
 (defn upload-rosters []
   [:form (conj (file-roaster :Attacker)
                (file-roaster :Defender))
    [:button.button.is-dark
-    {:name "Upload"
+    {:name     "Upload"
      :on-click (fn [e]
-                  (.preventDefault e)
-                  (.log js/console "Hello, world!"))} "Upload"]] )
+                 (.preventDefault e)
+                 (swap! session assoc :show-upload-files false))} "Upload"]] )
 
 (defn home-page []
   [:section.section>div.container>div.content
    (title)
-   (upload-rosters)])
-
-
+   (when (:show-upload-files @session)
+     (upload-rosters))
+   (when-not (:show-upload-files @session)
+     (list [:div.columns
+            [:div.column (dropdown-units "Attacker" ["Attacker1" "Attacker2"])]]
+           [:div.columns
+            [:div.column (dropdown-units "Attacker weapons" ["weapon1" "weapon2"])]]
+           [:div.columns
+            [:div.column (dropdown-units "Defender" ["Defender1" "Defender2"])]]
+           [:button.button.is-dark
+            {:name     "select-units"
+             :on-click (fn [e]
+                         (.preventDefault e)
+                         (swap! session assoc :show-results true))} "Select"])
+      )
+   (when (:show-results @session)
+     (list [:div.columns [:div.column (render-unit {:bs "3+"})]]
+           [:button.button.is-dark
+            {:name     "fight"
+             :on-click (fn [e]
+                         (.preventDefault e)
+                         (swap! session assoc :show-results true))} "Fight"]))])
 
 (def pages
   {:home #'home-page})
