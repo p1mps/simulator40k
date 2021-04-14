@@ -6,24 +6,13 @@
       <title>Welcome to simulator40k</title>
   </head>
   <body>
-    <div id="navbar"></div>
+
     <div id="app">
       <section class="section">
         <div class="container is-fluid">
-          <div class="content">
-            <h4 class="title">Welcome to simulator40k</h4>
-            <p>If you're seeing this message, that means you haven't yet compiled your ClojureScript!</p>
-            <p>Please run <code>lein figwheel</code> to start the ClojureScript compiler and reload the page.</p>
-            <h4>For better ClojureScript development experience in Chrome follow these steps:</h4>
-            <ul>
-              <li>Open DevTools
-              <li>Go to Settings ("three dots" icon in the upper right corner of DevTools > Menu > Settings F1 > General > Console)
-              <li>Check-in "Enable custom formatters"
-              <li>Close DevTools
-              <li>Open DevTools
-            </ul>
-            <p>See <a href="http://www.luminusweb.net/docs/clojurescript.md">ClojureScript</a> documentation for further details.</p>
-          </div>
+            <div class="content">
+                <div id="title"></div>
+            </div>
         </div>
       </section>
     </div>
@@ -32,6 +21,16 @@
     {% style "/assets/bulma/css/bulma.min.css" %}
     {% style "/assets/material-icons/css/material-icons.min.css" %}
     {% style "/css/screen.css" %}
+
+    <script>
+     const fileInput = document.querySelector('input[type=file]');
+     fileInput.onchange = () => {
+         if (fileInput.files.length > 0) {
+             const fileName = document.querySelector('.file-name');
+             fileName.textContent = fileInput.files[0].name;
+         }
+     }
+    </script>
 
     <script type="text/javascript">
         var csrfToken = "{{csrf-token}}";

@@ -1,5 +1,6 @@
 (ns simulator40k.core
   (:require
+   [cljs.pprint :refer [pprint]]
     [reagent.core :as r]
     [reagent.dom :as rdom]
     [goog.events :as events]
@@ -11,43 +12,48 @@
     [clojure.string :as string])
   (:import goog.History))
 
-(defonce session (r/atom {:page :home}))
+(defonce session (r/atom {:page :home
+                          :files {:Attacker nil
+                                  :Defender nil}}))
 
-(defn nav-link [uri title page]
-  [:a.navbar-item
-   {:href   uri
-    :class (when (= page (:page @session)) "is-active")}
-   title])
+(defn title []
+  [:div.columns
+   [:div.column
+    [:div.title [:h1 "Simulator 40k"]]]
+   ])
 
-(defn navbar [] 
-  (r/with-let [expanded? (r/atom false)]
-    [:nav.navbar.is-info>div.container
-     [:div.navbar-brand
-      [:a.navbar-item {:href "/" :style {:font-weight :bold}} "simulator40k"]
-      [:span.navbar-burger.burger
-       {:data-target :nav-menu
-        :on-click #(swap! expanded? not)
-        :class (when @expanded? :is-active)}
-       [:span][:span][:span]]]
-     [:div#nav-menu.navbar-menu
-      {:class (when @expanded? :is-active)}
-      [:div.navbar-start
-       [nav-link "#/" "Home" :home]
-       [nav-link "#/about" "About" :about]]]]))
+(defn file-roaster [role]
+  [:div.field
+   [:label.label (str (name role) " roaster:")]
+   [:div.file
+     [:label.file-label
+      [:input.file-input {:name "resume", :type "file"
+                          :on-change (fn [e]
+                                       (swap! session assoc-in [:files role] (-> e .-target .-value)))}]
+      [:span.file-cta
+       [:span.file-icon [:i.fas.fa-upload]]
+       [:span.file-label "\n        Choose a file…\n      "]]
+      [:span.file-name (role (:files @session))]]]])
 
-(defn about-page []
-  [:section.section>div.container>div.content
-   [:img {:src "/img/warning_clojure.png"}]])
 
+(defn upload-rosters []
+  [:form (conj (file-roaster :Attacker)
+               (file-roaster :Defender))
+   [:button.button.is-dark
+    {:name "Upload"
+     :on-click (fn [e]
+                  (.preventDefault e)
+                  (.log js/console "Hello, world!"))} "Upload"]] )
 
 (defn home-page []
   [:section.section>div.container>div.content
-   (when-let [docs (:docs @session)]
-     [:div {:dangerouslySetInnerHTML {:__html (md->html docs)}}])])
+   (title)
+   (upload-rosters)])
+
+
 
 (def pages
-  {:home #'home-page
-   :about #'about-page})
+  {:home #'home-page})
 
 (defn page []
   [(pages (:page @session))])
@@ -57,8 +63,7 @@
 
 (def router
   (reitit/router
-    [["/" :home]
-     ["/about" :about]]))
+    [["/" :home]]))
 
 (defn match-route [uri]
   (->> (or (not-empty (string/replace uri #"^.*#" "")) "/")
@@ -78,15 +83,12 @@
 
 ;; -------------------------
 ;; Initialize app
-(defn fetch-docs! []
-  (GET "/docs" {:handler #(swap! session assoc :docs %)}))
-
 (defn mount-components []
-  (rdom/render [#'navbar] (.getElementById js/document "navbar"))
+  (rdom/render [#'title] (.getElementById js/document "title"))
   (rdom/render [#'page] (.getElementById js/document "app")))
 
 (defn init! []
+  (enable-console-print!)
   (ajax/load-interceptors!)
-  (fetch-docs!)
   (hook-browser-navigation!)
   (mount-components))
