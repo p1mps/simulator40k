@@ -1,10 +1,22 @@
 (ns simulator40k.routes.home
   (:require
    [simulator40k.layout :as layout]
+   [simulator40k.parse :as parse]
+
    [clojure.java.io :as io]
    [simulator40k.middleware :as middleware]
    [ring.util.response]
    [ring.util.http-response :as response]))
+
+(defn parse-rosters [request]
+  (println (:params request))
+  {:status 200
+   :headers {}
+   :body {:attacker-roaster
+          (parse/parse (:tempfile (:Attacker (:params request))))
+          :defender-roaster
+          (parse/parse (:tempfile (:Defender (:params request))))
+          }})
 
 (defn home-page [request]
   (layout/render request "home.html"))
@@ -14,7 +26,4 @@
    {:middleware [middleware/wrap-csrf
                  middleware/wrap-formats]}
    ["/" {:get home-page}]
-   ["/docs" {:get (fn [_]
-                    (-> (response/ok (-> "docs/docs.md" io/resource slurp))
-                        (response/header "Content-Type" "text/plain; charset=utf-8")))}]])
-
+   ["/api/parse" {:post parse-rosters}]])

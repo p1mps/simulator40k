@@ -1,5 +1,6 @@
 (ns simulator40k.core
   (:require
+   [ajax.core :refer [GET POST]]
    [b1.charts :as c]
    [b1.svg :as s]
    [reagent.core :as r]
@@ -17,7 +18,7 @@
   {:graph-data        :nil
    :page              :home
    :show-upload-files true
-   :show-results      false
+   :show-models      false
    :show-graph        false
    :files             {:Attacker nil
                        :Defender nil}})
@@ -46,7 +47,8 @@
    [:label.label (str (name role) " roaster:")]
    [:div.file
     [:label.file-label.full-width
-     [:input.file-input {:name      "resume", :type "file"
+     [:input.file-input {:id (name role)
+                         :name      "resume", :type "file"
                          :on-change (fn [e]
                                       (swap! session assoc-in [:files role] (-> e .-target .-value))
                                       )}]
@@ -62,14 +64,18 @@
      (for [u units]
        ^{:key u} [:option u])]]])
 
-(defn render-unit [{:keys [bs attacks ap strength save toughness]}]
-  [:div.margin
+
+(defn attacker [{:keys [bs attacks ap strength save toughness]}]
+  (list
    [:h1 "Attacker"]
    [:div.field.is-horizontal
     [:div.field-label.is-normal
      [:label.label "BS:"]]
     [:input.input
-     {:type "text" :value bs}]]
+     {:type "text" :value bs}]]))
+
+(defn attacker-weapons [{:keys [bs attacks ap strength save toughness]}]
+  (list
    [:h1 "Attacker's Weapon"]
    [:div.field.is-horizontal
     [:div.field-label.is-normal
@@ -86,6 +92,11 @@
      [:label.label "Strength:"]]
     [:input.input
      {:type "text" :value strength}]]
+   ))
+
+
+(defn defender [{:keys [bs attacks ap strength save toughness]}]
+  (list
    [:h1 "Defender"]
    [:div.field.is-horizontal
     [:div.field-label.is-normal
@@ -96,17 +107,44 @@
     [:div.field-label.is-normal
      [:label.label "Toughness:"]]
     [:input.input
-     {:type "text" :value toughness}]]]
-  )
+     {:type "text" :value toughness}]]
+   ))
+
+(defn models [models]
+  [:div.margin
+   (attacker models)
+   (attacker-weapons models)
+   (defender models)])
+
+
+(defn console-log [s]
+  (.log js/console s))
+
+
+(defn handler-upload [response]
+  (console-log (str response)))
 
 
 (defn upload-rosters []
-  [:form (conj (file-roaster :Attacker)
+  [:form
+   (conj (file-roaster :Attacker)
                (file-roaster :Defender))
    [:button.button.is-dark
     {:name     "Upload"
      :on-click (fn [e]
                  (.preventDefault e)
+
+                 (let [file-attacker (aget (.-files
+                                            (.getElementById js/document "Attacker")) 0)
+                       file-defender (aget (.-files
+                                            (.getElementById js/document "Defender")) 0)
+                       form-data (doto
+                                     (js/FormData.)
+                                   (.append "Attacker" file-attacker)
+                                   (.append "Defender" file-defender))]
+
+                   (POST "/api/parse" {:body  form-data
+                                       :handler handler-upload}))
                  (swap! session assoc :show-upload-files false))} "Upload"]] )
 
 (defn home-page []
@@ -125,11 +163,11 @@
             {:name     "select-units"
              :on-click (fn [e]
                          (.preventDefault e)
-                         (swap! session assoc :show-results true)
+                         (swap! session assoc :show-models true)
                          )} "Select"])
      )
-   (when (:show-results @session)
-     (list [:div.columns [:div.column (render-unit {:bs "3+"})]]
+   (when (:show-models @session)
+     (list [:div.columns [:div.column (models {:bs "3+"})]]
            [:button.button.is-dark
             {:name     "fight"
              :on-click (fn [e]
