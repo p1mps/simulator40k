@@ -12,17 +12,23 @@
     [clojure.string :as string])
   (:import goog.History))
 
-(defonce session (r/atom {:page
-                          :home
-                          :show-upload-files true
-                          :show-results false
-                          :files {:Attacker nil
-                                  :Defender nil}}))
+(def empty-state
+  {:page :home
+   :show-upload-files true
+   :show-results false
+   :files {:Attacker nil
+           :Defender nil}})
+
+(defonce session (r/atom empty-state))
 
 (defn title []
   [:div.columns
    [:div.column
-    [:div.title [:h1 "Simulator 40k"]]]
+    [:div.title
+     [:a {:href "/#"
+          :on-click (fn [_]
+                      (reset! session empty-state))}
+      [:h1 "Simulator 40k"]]]]
    ])
 
 (defn file-roaster [role]
