@@ -61,7 +61,7 @@
          id 0
          result []]
     (if (seq u)
-      (recur (rest u) (inc id) (conj result (assoc (first u) :id id)))
+      (recur (rest u) (inc id) (conj result (assoc (first u) :id (str id))))
       result)))
 
 (defn get-models [force]
