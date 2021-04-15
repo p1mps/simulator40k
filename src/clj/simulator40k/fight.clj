@@ -123,7 +123,7 @@
 
 (defn calculate-wounds [model1 model2 w]
   (reduce +
-            (loop [n      (roll-dice (:n (:chars w)))
+            (loop [n      (roll-dice "1")
                    result []]
               (if (> n 0)
                 (if (shoot-succes model1 model2 w)
@@ -138,33 +138,10 @@
 ;; TODO: number of attacks * number of units
 
 (defn shoot [model1 model2]
-  (for [w (:weapons model1)]
-    {:weapon-name  (:name w)
-     :weapon-chars (:chars w)
-     :wounds
-     ;; TODO: parse D6
-     (calculate-wounds model1 model2 w)
-
-     }))
+  (calculate-wounds model1 model2 (first (:weapons model1))))
 
 (defn monte-carlo-shoot [model1 model2 n]
-  (->>
-   (let [shooting (flatten (repeatedly n #(shoot model1 model2)))]
-     (loop [result {}
-            s      shooting]
-       (if-not (seq s)
-         result
-         (recur (update result (:weapon-name (first s))
-                        conj (:wounds (first s))) (rest s)))))
-   (reduce (fn [result value]
-
-             (assoc result (first value) (sort (remove #{0} (vec (second value)))))
-
-             )
-
-           {}))
-
-  )
+  (repeatedly n #(shoot model1 model2)))
 
 (defn assoc-weapons [stats]
   (reduce (fn [result value]
@@ -181,27 +158,15 @@
   )
 
 
-(defn stats [unit1 unit2 n]
-  (vec (->> (for [m (:models unit1)]
-              (monte-carlo-shoot m (first (:models unit2)) n)
+(defn stats [m1 m2 n]
 
-              )
-            (assoc-weapons)
+  (monte-carlo-shoot m1 m2 n)
+            ;;(assoc-weapons)
 
-
-
-            ))
 
 
 
   )
-
-
-
-
-
-
-
 
 (comment
 

@@ -14,9 +14,12 @@
    [clojure.string :as string])
   (:import goog.History))
 
+(def number-experiments 10)
+
 (def empty-state
   {:attacker-roster         nil
    :defender-roster         nil
+   :number-experiments      number-experiments
    :defender-unit-models    nil
    :attacker-unit-models    nil
    :attacker-model nil
@@ -53,8 +56,9 @@
   (take 100 (repeatedly rand)))
 
 (defn graph []
-  (-> (c/histogram (:graph-data @session) :x-axis [0 1] :n-bins 10)
-      (s/as-svg :width 500 :height 200)))
+  (println "set" (count (set (:graph-data @session))))
+  [:div (-> (c/histogram (:graph-data @session) :x-axis [0 (+ 1 (apply cljs.core/max (:graph-data @session)))] :num-bins (count (set (:graph-data @session))))
+            (s/as-svg :width 500 :height 200))])
 
 
 ;;FIRST PAGE
@@ -171,6 +175,16 @@
 
 
 ;; MODEL SELECTED
+(defn experiments []
+  [:div.field.is-horizontal
+   [:div.field-label.is-normal
+    [:label.label "Runs:"]]
+   [:input.input
+    {:type  "text"
+     :defaultValue (:number-experiments @session)
+     }]])
+
+
 (defn attacker []
   (list
    [:h1 (-> @session :attacker-model :name)]
@@ -179,7 +193,7 @@
      [:label.label "BS:"]]
     [:input.input
      {:type "text"
-      :value (-> @session :attacker-model :chars :bs)
+      :defaultValue (-> @session :attacker-model :chars :bs)
       }]]))
 
 (defn attacker-weapons []
@@ -189,23 +203,22 @@
     [:div.field-label.is-normal
      [:label.label "AP:"]]
     [:input.input
-     {:type "text" :value (-> @session :attacker-weapon-selected :chars :ap)}]]
+     {:type "text" :defaultValue (-> @session :attacker-weapon-selected :chars :ap)}]]
    [:div.field.is-horizontal
     [:div.field-label.is-normal
      [:label.label "Attacks:"]]
     [:input.input
-     {:type "text" :value (-> @session :attacker-weapon-selected :chars :type)}]]
+     {:type "text" :defaultValue (-> @session :attacker-weapon-selected :chars :type)}]]
    [:div.field.is-horizontal
     [:div.field-label.is-normal
      [:label.label "Strength:"]]
     [:input.input
-     {:type "text" :value (-> @session :attacker-weapon-selected :chars :s)}]]
+     {:type "text" :defaultValue (-> @session :attacker-weapon-selected :chars :s)}]]
    [:div.field.is-horizontal
     [:div.field-label.is-normal
      [:label.label "Damage:"]]
     [:input.input
-     {:type "text" :value (-> @session :attacker-weapon-selected :chars :d)}]]))
-
+     {:type "text" :defaultValue (-> @session :attacker-weapon-selected :chars :d)}]]))
 
 (defn defender []
   (list
@@ -214,12 +227,12 @@
     [:div.field-label.is-normal
      [:label.label "Save:"]]
     [:input.input
-     {:type "text" :value (-> @session :defender-model :chars :save)}]]
+     {:type "text" :defaultValue (-> @session :defender-model :chars :save)}]]
    [:div.field.is-horizontal
     [:div.field-label.is-normal
      [:label.label "Toughness:"]]
     [:input.input
-     {:type "text" :value (-> @session :defender-model :chars :t)}]]))
+     {:type "text" :defaultValue (-> @session :defender-model :chars :t)}]]))
 
 (defn models []
   [:div.margin
@@ -241,6 +254,13 @@
   (set-model! "0" "0" :attacker-model :attacker-unit-models)
   (set-model! "0" "0" :defender-model :defender-unit-models))
 
+(defn read-response [response]
+  (-> (.parse js/JSON response) (js->clj :keywordize-keys true)))
+
+(defn handler-fight [response]
+  (println (:fight (read-response response)))
+  (swap! session assoc :show-graph true)
+  (swap! session assoc :graph-data (:fight (read-response response))))
 
 (defn home-page []
   [:section.section>div.container>div.content
@@ -257,14 +277,22 @@
       (dropdown-defender-units)
       (dropdown-attacker-weapons)
       [:div.columns [:div.column (models)]]
+      (experiments)
       [:button.button.is-dark
             {:name     "fight"
              :on-click (fn [e]
                          (.preventDefault e)
-                         (swap! session assoc :graph-data (generate-graph-data))
-                         (swap! session assoc :show-graph true))} "Fight"]))
+                         (println "click")
 
-   (when (:show-graph @session)
+                         (POST "/api/fight" {:params    {:attacker (:attacker-model @session)
+                                                       :defender (:defender-model @session)
+                                                       :n (:number-experiments @session)}
+                                             :handler handler-fight})
+
+
+                         )} "Fight"]))
+
+   (when (:graph-data @session)
      (graph))])
 
 (def pages
@@ -310,4 +338,6 @@
 
 
 
-(cljs.pprint/pprint (first (filter #(= (:id %) "1") (:attacker-weapons @session))))
+;;(cljs.pprint/pprint (first (filter #(= (:id %) "1") (:attacker-weapons @session))))
+;;(cljs.pprint/pprint (:attacker-model @session))
+;;(cljs.pprint/pprint (:graph-data @session))

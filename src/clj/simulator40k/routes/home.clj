@@ -2,14 +2,25 @@
   (:require
    [simulator40k.layout :as layout]
    [simulator40k.parse :as parse]
-
+   [simulator40k.fight :as fight]
+   [cheshire.core :as json]
    [clojure.java.io :as io]
    [simulator40k.middleware :as middleware]
    [ring.util.response]
    [ring.util.http-response :as response]))
 
+(defn run-fight [request]
+  {:status 200
+   :headers {}
+   :body (json/generate-string {:fight
+                                (fight/stats (:attacker (:params request))
+                                             (:defender (:params request))
+                                             (:n (:params request)))
+
+                                })})
+
+
 (defn parse-rosters [request]
-  (println (:params request))
   {:status 200
    :headers {}
    :body {:attacker-roster
@@ -26,4 +37,5 @@
    {:middleware [middleware/wrap-csrf
                  middleware/wrap-formats]}
    ["/" {:get home-page}]
-   ["/api/parse" {:post parse-rosters}]])
+   ["/api/parse" {:post parse-rosters}]
+   ["/api/fight" {:post run-fight}]])
