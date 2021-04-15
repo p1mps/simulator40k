@@ -19,10 +19,11 @@
    :defender-roster         nil
    :defender-unit-models    nil
    :attacker-unit-models    nil
-   :selected-attacker-model nil
-   :selected-defender-model nil
+   :attacker-model nil
+   :defender-model nil
    :graph-data              nil
    :attacker-weapons        nil
+   :attacker-weapon-selected nil
    :page                    :home
    :show-upload-files       true
    :show-models             false
@@ -55,6 +56,8 @@
   (-> (c/histogram (:graph-data @session) :x-axis [0 1] :n-bins 10)
       (s/as-svg :width 500 :height 200)))
 
+
+;;FIRST PAGE
 (defn title []
   [:div.columns
    [:div.column
@@ -62,8 +65,7 @@
      [:a {:href     "/#"
           :on-click (fn [_]
                       (reset! session empty-state))}
-      [:h1 "Simulator 40k"]]]]
-   ])
+      [:h1 "Simulator 40k"]]]]])
 
 (defn file-roaster [role]
   [:div.field
@@ -73,77 +75,11 @@
      [:input.file-input {:id        (name role)
                          :name      "resume", :type "file"
                          :on-change (fn [e]
-                                      (swap! session assoc-in [:files role] (-> e .-target .-value))
-                                      )}]
+                                      (swap! session assoc-in [:files role] (-> e .-target .-value)))}]
      [:span.file-cta.full-width
       [:span.file-icon [:i.fas.fa-upload]]
       [:span.file-label "\n        Choose a file…\n      "]]
      [:span.file-name (role (:files @session))]]]])
-
-
-
-(defn dropdown-weapons [weapons]
-  [:div.field
-   [:div.select.is-dark.full-width
-    [:select.full-width
-     (for [w weapons]
-        [:option
-         {:id (:id w)} (:name w)])]]])
-
-
-(defn attacker []
-
-  (list
-   [:h1 "Attacker"]
-   [:div.field.is-horizontal
-    [:div.field-label.is-normal
-     [:label.label "BS:"]]
-    [:input.input
-     {:type "text"
-      :value (-> @session :attacker-model :chars :bs)
-      }]]))
-
-(defn attacker-weapons []
-  (list
-   [:h1 "Attacker's Weapon"]
-   [:div.field.is-horizontal
-    [:div.field-label.is-normal
-     [:label.label "AP:"]]
-    [:input.input
-     {:type "text" :value 1}]]
-   [:div.field.is-horizontal
-    [:div.field-label.is-normal
-     [:label.label "Attacks:"]]
-    [:input.input
-     {:type "text" :value 1}]]
-   [:div.field.is-horizontal
-    [:div.field-label.is-normal
-     [:label.label "Strength:"]]
-    [:input.input
-     {:type "text" :value 1}]]
-   ))
-
-
-(defn defender []
-  (list
-   [:h1 "Defender"]
-   [:div.field.is-horizontal
-    [:div.field-label.is-normal
-     [:label.label "Save:"]]
-    [:input.input
-     {:type "text" :value (-> @session :defender-model :chars :save)}]]
-   [:div.field.is-horizontal
-    [:div.field-label.is-normal
-     [:label.label "Toughness:"]]
-    [:input.input
-     {:type "text" :value (-> @session :defender-model :chars :t)}]]
-   ))
-
-(defn models []
-  [:div.margin
-   (attacker)
-   (attacker-weapons)
-   (defender)])
 
 
 (defn handler-upload [response]
@@ -170,9 +106,17 @@
                                        :handler handler-upload}))
                  (swap! session assoc :show-upload-files false))} "Upload"]] )
 
+;;SECOND PAGE
+
+;; DROPDOWNS
 (defn set-model! [unit-id model-id k from-models]
   (swap! session assoc k
          (:model (first (filter #(and (= (:id (:unit %)) unit-id) (= (:id (:model %)) model-id)) (from-models @session))))))
+
+(defn set-weapon! [weapon-id]
+  (println weapon-id)
+  (swap! session assoc :attacker-weapon-selected
+         (first (filter #(= (:id %) weapon-id) (:attacker-weapons @session)))))
 
 (defn dropdown-units [models k belong-to]
   [:div.field
@@ -189,19 +133,24 @@
                                                          {:idunit  (:id (:unit m))
                                                           :idmodel (:id (:model m))} (:name (:model m))]])]]])
 
-(defn init-models! [roster type-key]
-  (let [unit-models (for [u (:units roster)
-                          m (:models u)]
-                      {:unit u :model m})]
-    (swap! session assoc type-key unit-models))
-  (set-model! "0" "0" :attacker-model :attacker-unit-models)
-  (set-model! "0" "0" :defender-model :defender-unit-models))
-
 (defn dropdown-attacker-units []
   [:div.columns
    [:div.column (dropdown-units
                  (:attacker-unit-models @session)
                  :attacker-model :attacker-unit-models)]])
+
+
+(defn dropdown-weapons [weapons]
+  [:div.field
+   [:div.select.is-dark.full-width
+    [:select#select-weapons.full-width {:id "select-weapons"
+                                        :on-change #(let [e        (js/document.getElementById "select-weapons")
+                                           weapon-id  (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
+                                           ]
+                                       (set-weapon! weapon-id))}
+     (for [w weapons]
+        [:option
+         {:id (:id w)} (:name w)])]]])
 
 (defn dropdown-attacker-weapons []
   [:div.columns
@@ -214,6 +163,81 @@
                      :defender-model :defender-unit-models)]])
 
 
+;; END DROPDOWNS
+
+
+;; MODEL SELECTED
+(defn attacker []
+  (list
+   [:h1 (-> @session :attacker-model :name)]
+   [:div.field.is-horizontal
+    [:div.field-label.is-normal
+     [:label.label "BS:"]]
+    [:input.input
+     {:type "text"
+      :value (-> @session :attacker-model :chars :bs)
+      }]]))
+
+(defn attacker-weapons []
+  (list
+   [:h1 (-> @session :attacker-weapon-selected :name)]
+   [:div.field.is-horizontal
+    [:div.field-label.is-normal
+     [:label.label "AP:"]]
+    [:input.input
+     {:type "text" :value (-> @session :attacker-weapon-selected :chars :ap)}]]
+   [:div.field.is-horizontal
+    [:div.field-label.is-normal
+     [:label.label "Attacks:"]]
+    [:input.input
+     {:type "text" :value (-> @session :attacker-weapon-selected :chars :type)}]]
+   [:div.field.is-horizontal
+    [:div.field-label.is-normal
+     [:label.label "Strength:"]]
+    [:input.input
+     {:type "text" :value (-> @session :attacker-weapon-selected :chars :s)}]]
+   [:div.field.is-horizontal
+    [:div.field-label.is-normal
+     [:label.label "Damage:"]]
+    [:input.input
+     {:type "text" :value (-> @session :attacker-weapon-selected :chars :d)}]]))
+
+
+(defn defender []
+  (list
+   [:h1 "Defender"]
+   [:div.field.is-horizontal
+    [:div.field-label.is-normal
+     [:label.label "Save:"]]
+    [:input.input
+     {:type "text" :value (-> @session :defender-model :chars :save)}]]
+   [:div.field.is-horizontal
+    [:div.field-label.is-normal
+     [:label.label "Toughness:"]]
+    [:input.input
+     {:type "text" :value (-> @session :defender-model :chars :t)}]]))
+
+(defn models []
+  [:div.margin
+   (attacker)
+   (attacker-weapons)
+   (defender)])
+
+;; END MODELS
+
+(defn init-weapons! []
+  (swap! session assoc :attacker-weapons (:weapons (:attacker-model @session)))
+  )
+
+(defn init-models! [roster type-key]
+  (let [unit-models (for [u (:units roster)
+                          m (:models u)]
+                      {:unit u :model m})]
+    (swap! session assoc type-key unit-models))
+  (set-model! "0" "0" :attacker-model :attacker-unit-models)
+  (set-model! "0" "0" :defender-model :defender-unit-models))
+
+
 (defn home-page []
   [:section.section>div.container>div.content
    (title)
@@ -222,8 +246,8 @@
    (when-not (:show-upload-files @session)
      (when-not (and (:attacker-model @session) (:defender-model @session))
        (init-models! (:attacker-roster @session) :attacker-unit-models)
-       (init-models! (:defender-roster @session) :defender-unit-models))
-
+       (init-models! (:defender-roster @session) :defender-unit-models)
+       (init-weapons!))
      (list
       (dropdown-attacker-units)
       (dropdown-defender-units)
@@ -279,3 +303,7 @@
   (ajax/load-interceptors!)
   (hook-browser-navigation!)
   (mount-components))
+
+
+
+(cljs.pprint/pprint (first (filter #(= (:id %) "1") (:attacker-weapons @session))))
