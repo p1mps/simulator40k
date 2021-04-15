@@ -110,8 +110,12 @@
 
 ;; DROPDOWNS
 (defn set-model! [unit-id model-id k from-models]
-  (swap! session assoc k
-         (:model (first (filter #(and (= (:id (:unit %)) unit-id) (= (:id (:model %)) model-id)) (from-models @session))))))
+  (let [model (:model (first (filter #(and (= (:id (:unit %)) unit-id) (= (:id (:model %)) model-id)) (from-models @session))))]
+    (println (:weapons model))
+    (swap! session assoc :attacker-weapons (:weapons model))
+    (swap! session assoc :attacker-weapon-selected
+           (first (:weapons model)))
+    (swap! session assoc k model)))
 
 (defn set-weapon! [weapon-id]
   (println weapon-id)
