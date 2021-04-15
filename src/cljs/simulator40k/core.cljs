@@ -15,7 +15,14 @@
   (:import goog.History))
 
 (def empty-state
-  {:graph-data        :nil
+  {:attacker-roster   nil
+   :defender-roster   nil
+   :defender-unit-models nil
+   :attacker-unit-models nil
+   :selected-attacker-model nil
+   :selected-defender-model nil
+   :graph-data        nil
+   :attacker-weapons   nil
    :page              :home
    :show-upload-files true
    :show-models      false
@@ -24,6 +31,10 @@
                        :Defender nil}})
 
 (defonce session (r/atom empty-state))
+
+(defn console-log [s]
+  (cljs.pprint/pprint s))
+
 
 (defn generate-graph-data []
   (take 100 (repeatedly rand)))
@@ -57,24 +68,27 @@
       [:span.file-label "\n        Choose a file…\n      "]]
      [:span.file-name (role (:files @session))]]]])
 
-(defn dropdown-units [units]
+
+
+(defn dropdown-weapons [weapons]
   [:div.field
    [:div.select.is-dark.full-width
     [:select.full-width
-     (for [u units]
-       ^{:key u} [:option u])]]])
+     ]]])
 
 
-(defn attacker [{:keys [bs attacks ap strength save toughness]}]
+(defn attacker [{:keys [bs]}]
   (list
    [:h1 "Attacker"]
    [:div.field.is-horizontal
     [:div.field-label.is-normal
      [:label.label "BS:"]]
     [:input.input
-     {:type "text" :value bs}]]))
+     {:type "text" :value
+      (-> @session :attacker-model)
+      }]]))
 
-(defn attacker-weapons [{:keys [bs attacks ap strength save toughness]}]
+(defn attacker-weapons [{:keys [attacks ap strength]}]
   (list
    [:h1 "Attacker's Weapon"]
    [:div.field.is-horizontal
@@ -95,7 +109,7 @@
    ))
 
 
-(defn defender [{:keys [bs attacks ap strength save toughness]}]
+(defn defender [{:keys [save toughness]}]
   (list
    [:h1 "Defender"]
    [:div.field.is-horizontal
@@ -117,13 +131,9 @@
    (defender models)])
 
 
-(defn console-log [s]
-  (.log js/console s))
-
-
 (defn handler-upload [response]
-  (console-log (str response)))
-
+  (swap! session assoc :attacker-roster (:attacker-roster response))
+  (swap! session assoc :defender-roster (:defender-roster response)))
 
 (defn upload-rosters []
   [:form
@@ -133,7 +143,6 @@
     {:name     "Upload"
      :on-click (fn [e]
                  (.preventDefault e)
-
                  (let [file-attacker (aget (.-files
                                             (.getElementById js/document "Attacker")) 0)
                        file-defender (aget (.-files
@@ -142,10 +151,39 @@
                                      (js/FormData.)
                                    (.append "Attacker" file-attacker)
                                    (.append "Defender" file-defender))]
-
                    (POST "/api/parse" {:body  form-data
                                        :handler handler-upload}))
                  (swap! session assoc :show-upload-files false))} "Upload"]] )
+
+(defn set-attacker-model! [model-id]
+  (println (:attacker-unit-models @session))
+  (swap! session assoc :attacker-model
+         (:model (first (filter #(= (:id (:model %)) model-id) (:attacker-unit-models @session))))))
+
+
+
+(defn dropdown-units [models belong-to]
+  [:div.field
+   [:div.select.is-dark.full-width
+    [:select.full-width {:id belong-to
+                         :on-change #(let [e (js/document.getElementById belong-to)
+                                           model-id (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))]
+                                       (set-attacker-model! model-id))}
+     (for [m models]
+       ^{:key (str m (:id (:unit m)))} [:optgroup  {
+                    :label (:name (:unit m))}
+                                        ^{:key (str m)} [:option
+         {:id (:id (:unit m))
+          :idmodel (:id (:model m))} (:name (:model m))]])]]])
+
+;; Attacker defender
+(defn get-models [roster type-key]
+  (let [unit-models (for [u (:units roster)
+                          m (:models u)]
+                      {:unit u :model m})]
+    (swap! session assoc type-key unit-models)
+    unit-models))
+
 
 (defn home-page []
   [:section.section>div.container>div.content
@@ -153,13 +191,15 @@
    (when (:show-upload-files @session)
      (upload-rosters))
    (when-not (:show-upload-files @session)
-     (list [:div.columns
-            [:div.column (dropdown-units ["Attacker1" "Attacker2"])]]
-           [:div.columns
-            [:div.column (dropdown-units ["Weapon1" "Weapon2"])]]
-           [:div.columns
-            [:div.column (dropdown-units ["Defender1" "Defender2"])]]
-           [:button.button.is-dark
+     (list ^{:key "1"} [:div.columns
+                      [:div.column (dropdown-units (get-models (:attacker-roster @session)
+                                                     :attacker-unit-models) "attacker")]]
+           ^{:key "2"} [:div.columns
+            [:div.column (dropdown-weapons ["Attacker's weapons (select first)"])]]
+           ^{:key "3"} [:div.columns
+            [:div.column (dropdown-units
+                          (get-models (:defender-roster @session) :defender-unit-models) "defender")]]
+           ^{:key "4"} [:button.button.is-dark
             {:name     "select-units"
              :on-click (fn [e]
                          (.preventDefault e)

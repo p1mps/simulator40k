@@ -84,6 +84,7 @@
                   :dependencies [[binaryage/devtools "1.0.2"]
                                  [cider/piggieback "0.5.2"]
                                  [doo "0.1.11"]
+                                 [com.bhauman/figwheel-main "0.2.13"]
                                  [figwheel-sidecar "0.5.20"]
                                  [pjstadig/humane-test-output "0.10.0"]
                                  [prone "2020-01-17"]

@@ -12,9 +12,9 @@
   (println (:params request))
   {:status 200
    :headers {}
-   :body {:attacker-roaster
+   :body {:attacker-roster
           (parse/parse (:tempfile (:Attacker (:params request))))
-          :defender-roaster
+          :defender-roster
           (parse/parse (:tempfile (:Defender (:params request))))
           }})
 
