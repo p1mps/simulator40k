@@ -1,3 +1,4 @@
+;; TODO: fix defender select
 (ns simulator40k.core
   (:require
    [ajax.core :refer [GET POST]]
@@ -115,10 +116,12 @@
 ;; DROPDOWNS
 (defn set-model! [unit-id model-id k from-models]
   (let [model (:model (first (filter #(and (= (:id (:unit %)) unit-id) (= (:id (:model %)) model-id)) (from-models @session))))]
-    (println (:weapons model))
-    (swap! session assoc :attacker-weapons (:weapons model))
-    (swap! session assoc :attacker-weapon-selected
-           (first (:weapons model)))
+    (when (= k :attacker-model)
+      (swap! session assoc :attacker-weapons (:weapons model))
+      (swap! session assoc :attacker-weapon-selected
+             (first (:weapons model))))
+
+
     (swap! session assoc k model)))
 
 (defn set-weapon! [weapon-id]
@@ -129,10 +132,12 @@
 (defn dropdown-units [models k belong-to]
   [:div.field
    [:div.select.is-dark.full-width
-    [:select.full-width {:id        "select"
-                         :on-change #(let [e        (js/document.getElementById "select")
+    [:select.full-width {:id        (str "select-" belong-to)
+                         :on-change #(let [e        (js/document.getElementById (str "select-" belong-to))
                                            unit-id  (.-value (.-idunit (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                                            model-id (.-value (.-idmodel (.-attributes (aget (.-options e) (.-selectedIndex e)))))]
+
+                                       (println "selected " unit-id model-id k belong-to)
                                        (set-model! unit-id model-id k belong-to))}
      (for [m models]
        ^{:key (str m (:id (:unit m)))} [:optgroup  {
@@ -147,6 +152,11 @@
                  (:attacker-unit-models @session)
                  :attacker-model :attacker-unit-models)]])
 
+(defn dropdown-defender-units []
+  [:div.columns
+       [:div.column (dropdown-units
+                     (:defender-unit-models @session)
+                     :defender-model :defender-unit-models)]])
 
 (defn dropdown-weapons [weapons]
   [:div.field
@@ -164,11 +174,7 @@
   [:div.columns
    [:div.column (dropdown-weapons (:weapons (:attacker-model @session)))]])
 
-(defn dropdown-defender-units []
-  [:div.columns
-       [:div.column (dropdown-units
-                     (:defender-unit-models @session)
-                     :defender-model :defender-unit-models)]])
+
 
 
 ;; END DROPDOWNS
@@ -222,7 +228,7 @@
 
 (defn defender []
   (list
-   [:h1 "Defender"]
+   [:h1 (-> @session :defender-model :name)]
    [:div.field.is-horizontal
     [:div.field-label.is-normal
      [:label.label "Save:"]]
@@ -265,6 +271,7 @@
 (defn home-page []
   [:section.section>div.container>div.content
    (title)
+   [:div (str @session)]
    (when (:show-upload-files @session)
      (upload-rosters))
    (when-not (:show-upload-files @session)
