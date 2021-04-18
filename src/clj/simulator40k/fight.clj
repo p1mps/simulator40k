@@ -115,53 +115,137 @@
      (read-string ap))
     (read-string (string/replace (:save (:chars model)) "+" "") )))
 
-(defn shoot-succes [model1 model2 w]
+(defn shoot [model1 model2 w]
   (let [h       (hit? (bs model1))
         s       (save? (save model2 (:ap (:chars w))))
         wounded (wound? w model2)]
-    (and h (not s) wounded)))
+    {:hit     h
+     :save    s
+     :success (and h (not s) wounded)
+     :wounded wounded}))
+
+
+(defn model-weapon [model]
+  (first (:weapons model)))
+
+(defn total-damage [shots]
+  (reduce (fn [result value]
+            (+ result (reduce
+                       + (:d value))))
+          0
+          shots))
 
 (defn calculate-wounds [model1 model2 w]
-  (reduce +
-            (loop [n      (roll-dice "1")
-                   result []]
-              (if (> n 0)
-                (if (shoot-succes model1 model2 w)
-                  (let [d (roll-dice (damage w))]
-                    (recur (dec n) (conj result d)))
-                  (recur (dec n) (conj result 0)))
-                result)
-              ))
+  (loop [n      (roll-dice (:type (:chars w)))
+         result []]
+    (if (> n 0)
+      (let [success (shoot model1 model2 w)]
+        (if (:success success)
+          (let [d (roll-dice (damage w))]
+            (recur (dec n) (conj result (assoc success :d d))))
+          (recur (dec n) (conj result (assoc success :d 0)))))
+      result)
+    )
   )
 
 
 ;; TODO: number of attacks * number of units
-
-(defn shoot [model1 model2]
-  (calculate-wounds model1 model2 (first (:weapons model1))))
-
-(defn monte-carlo-shoot [model1 model2 n]
-  (repeatedly n #(shoot model1 model2)))
-
-(defn assoc-weapons [stats]
-  (reduce (fn [result value]
-            (conj result (reduce (fn [r v]
-                                   (update r (first v) (comp vec concat) (second v)))
-                                 {}
-                                 value))
-
-            )
-
-          {}
-          stats
-          )
+;; number of attacks still not fixed
+(defn monte-carlo-shoot [attacker defender n]
+  (repeat n
+          (calculate-wounds attacker defender (model-weapon attacker)))
   )
 
+(defn average
+  [numbers]
+    (if (empty? numbers)
+      0
+      (/ (reduce + numbers) (count numbers))))
 
-(defn stats [m1 m2 n]
 
-  (monte-carlo-shoot m1 m2 n)
-            ;;(assoc-weapons)
+
+(defn compute-stats [experiments]
+  (->>
+   (reduce (fn [result value]
+
+                (conj result
+                      {:total-damage  (reduce (fn [result value]
+                                               (+ result (:d value)))
+                                             0
+                                             value)
+                       :total-success (count
+                                       (filter #(= (:success %) true)
+                                               value))
+
+
+                       :total-hits   (count
+                                    (filter #(= (:hit %) true)
+                                            value))
+                       :total-wounds (count
+                                      (filter #(= (:wounded %) true)
+                                              value))
+                       :total-saves  (count
+                                     (filter #(= (:save %) true)
+                                             value))})
+                )
+              []
+              experiments)
+   (reduce (fn [result value]
+             (merge-with + result value)
+              )
+           {
+            }))
+  )
+
+(defn compute-average [experiments k]
+  (average (flatten
+            (for [e experiments]
+              (count (filter #(if (= k :d )
+                                (> (k %) 0)
+                                (= (k %) true))  e))))))
+
+;; 100:x = total:number
+;; 100*number/total
+(defn percentage [total number]
+  (* 100 (/ number total)))
+
+(defn compute-percentage [experiments k total]
+  (average (flatten
+            (for [e experiments]
+              (percentage  (count e) (count (filter #(if (= k :d )
+                                                       (> (k %) 0)
+                                                       (= (k %) true))  e)))
+              ))))
+
+
+
+(defn stats [{:keys [attacker defender n]}]
+
+  (let [experiments (monte-carlo-shoot attacker defender (read-string n))]
+    {:total              (count experiments)
+     :failed-experiments (for [e experiments]
+                           (filter #(= (:success %) false)  e))
+     :experiments        (for [e experiments]
+                           (filter #(= (:success %) true)  e))
+     :avg-success        (compute-average experiments :success)
+     :avg-hits           (compute-average experiments :hit)
+     :avg-wounded        (compute-average experiments :wounded)
+     :avg-saves          (compute-average experiments :save)
+     :avg-damage         (compute-average experiments :d)
+     :percentage-success (compute-percentage  experiments :d (read-string n))
+
+
+
+     :stats (compute-stats experiments)
+     ;; :success 0
+     ;; :hits    0
+     ;; :wounds  0
+     ;; :not-saves   0
+     }
+
+
+    )
+
 
 
 
@@ -176,6 +260,8 @@
   (def squad (second units))
 
   (def captain-model (first (:models captain)))
+
+  (simulator40k.parse/parse "Death riders 2000.rosz")
 
 
 
@@ -194,4 +280,4 @@
 
 
 
-  )
+    )

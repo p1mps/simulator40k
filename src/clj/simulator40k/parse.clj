@@ -61,12 +61,19 @@
          id 0
          result []]
     (if (seq u)
-      (recur (rest u) (inc id) (conj result (assoc (first u) :id (str id))))
+      (recur (rest u)
+             (inc id)
+             (conj result
+                   (assoc
+                    (first u)
+                    :id
+                    (str id))))
       result)))
 
 (defn get-models [force]
   (for [m (xml-select/models force)]
-    {:name    (attrs-name (first m))
+    {:name  (attrs-name (first m))
+     :model true
      :models
      (assoc-ids (list {:name    (attrs-name (first m))
                        :number  (read-string (:number (:attrs (first m))))
@@ -75,34 +82,58 @@
 
 (defn get-units [force]
   (for [u (xml-select/units force)]
-    {:name
-     (attrs-name (first u))
-     :models (assoc-ids (for [m (xml-select/unit->models u)]
-                          {:name    (attrs-name (first m))
-                           :number  (read-string (:number (:attrs (first m))))
-                           :chars   (characteristics  m)
-                           :weapons (assoc-ids (weapons m))}))}))
+      {:name
+       (attrs-name (first u))
+       :unit   true
+       :models (filter #(:m (:chars %))
+                       (assoc-ids (for [m (concat (xml-select/unit->models-as-upgrades u)
+                                                  (xml-select/unit->models u))]
+                                    {:name    (attrs-name (first m))
+                                     :number  (read-string (:number (:attrs (first m))))
+                                     :chars   (characteristics  m)
+                                     :weapons (assoc-ids (weapons m))})))}))
 
 
 (defn edn [forces]
-  (for [f forces]
-    {:force-name (attrs-name  (first f))
-     :units (assoc-ids (concat (get-models f) (get-units f)))}))
+  (assoc-ids (for [f forces]
+               {:force-name (attrs-name (first f))
+                ;; TODO: units must be unique (use sets)
+                :units      (assoc-ids (concat (get-models f) (get-units f)))})))
 
 
+;; TODO: we change the data we got from battescribe
+(defn find-unique-models [unit unique-models]
+  (filter #(= (:unit %) unit) unique-models))
+
+(defn remove-found-model [model models]
+  (remove #(= (:name %) (:name model)) models))
+
+(defn final-result [forces]
+  (let [unique-models (distinct (flatten (for [f forces]
+                                      (for [u (:units f)]
+                                        (for [m (:models u)]
+                                          {:unit u
+                                           :model   (dissoc m :id)})))))]
+    (for [f forces]
+      (assoc f :units
+             (for [u (:units f)]
+               (assoc u :models
+                      (assoc-ids
+                       (map :model (find-unique-models u unique-models)))))))))
 
 
 (defn file->edn [file]
   (-> file
       zip-reader/zipper
       xml-select/forces
-      edn))
+      edn
+      final-result))
 
 
 (defn parse [file-rosz]
   ;; TODO: generate random xml name file
   (let [file (zip-reader/unzip-file file-rosz "output.xml")]
-    (first (file->edn file))))
+    (file->edn file)))
 
 (comment
 

@@ -10,14 +10,12 @@
    [ring.util.http-response :as response]))
 
 (defn run-fight [request]
-  {:status 200
-   :headers {}
-   :body (json/generate-string {:fight
-                                (fight/stats (:attacker (:params request))
-                                             (:defender (:params request))
-                                             (:n (:params request)))
+  (let [stats (fight/stats (:params request))]
 
-                                })})
+    {:status  200
+     :headers {}
+     :body    (json/generate-string {:fight
+                                     stats})}))
 
 
 (defn parse-rosters [request]
