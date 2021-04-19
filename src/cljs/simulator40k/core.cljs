@@ -60,31 +60,40 @@
 ;;     (s/as-svg :width 500 :height 200))
 
 
-(def layout (clj->js {;;:margin {:l 0 :r 0 :t 0 :b 0 }
-                      :xaxis {:tickformat ",d"}
-                      :yaxis {:tickformat ",d"}
-                      :bargap 5
-                      :width 450
-                      }))
+(defn layout [n]
+  (clj->js {:xaxis {:type  "integer",
+                    :autorange false
+                    :fixedrange true
+                    :range [0 10]}
+            :yaxis {:title "Value"
+                    :tickformat ",d"}
+            :barmode "group"
+            :bargap 0.5
+            :width 450
+            }))
 
 
 
-(def data {
-           :type "histogram"
+(def data {:type "histogram"
            :xbins {:size 1}})
 
 ;;(str (:graph-data @session))
 (defn graph []
   (list
+
+   ;;(-> @session :graph-data)
+   (-> @session :graph-data :stats :total-success)
    [:div {:id "graph"}]
 
-   [:p
-    [:b (str "Success ")]
-    (str (gstring/format "%.2f" (-> @session :graph-data :percentage-success)) "%")
-    ]
-   [:p
-    [:b (str "Wounds: " )]
-    (-> @session :graph-data :avg-damage)]
+   (when (-> @session :graph-data :percentage-success)
+     (list [:p
+            [:b (str "Success ")] (str (gstring/format "%.2f" (-> @session :graph-data :percentage-success)) "%")]
+           ))
+
+   (when (-> @session :graph-data :avg-damage)
+     [:p
+        [:b (str "Wounds: " )] (-> @session :graph-data :avg-damage)]
+     )
 
 
 
@@ -181,6 +190,20 @@
                                                           :idmodel (:id (:model m))} (:name (:model m))]])]]])
 
 
+(defn dropdown [title data on-change-f]
+  (list [:h1 title]
+        [:div.columns
+         [:div.column
+          [:div.field
+           [:div.select.is-dark.full-width
+            [:select.full-width {:id        (str "select-" title)
+                                 :on-change on-change-f}
+     (for [d data]
+       ^{:key (str d (:id d))}
+       [:option
+        {:id (:id d)} (:value d)])]]]]]))
+
+
 
 
 (defn dropdown-attacker-units []
@@ -213,8 +236,6 @@
 (defn dropdown-attacker-weapons []
   [:div.columns
    [:div.column (dropdown-weapons (:weapons (:attacker-model @session)))]])
-
-
 
 
 ;; END DROPDOWNS
@@ -350,31 +371,24 @@
   (-> (.parse js/JSON response) (js->clj :keywordize-keys true)))
 
 
-
+(defn graph-data [k]
+  (js->clj (for [i (range (-> @session :graph-data k))]
+             k)))
 
 
 (defn handler-fight [response]
-
   (js/Plotly.newPlot (.getElementById js/document "graph")
                      (clj->js
-                      [{:x (for [i (range 0 (js->clj (-> @session :graph-data :avg-success)))] 1)
-                        :name "successes"
-                        :type "histogram"
-                        :xbins {:size 1}}
-                       {:x (for [i (range 0 (js->clj (-> @session :graph-data :avg-hits)))] 1)
-                        :name "hits"
-                        :type "histogram"
-                        :xbins {:size 1}}
-                       {:x (for [i (range 0 (js->clj (-> @session :graph-data :avg-wounded)))] 1)
-                        :name "wounded"
-                        :type "histogram"
-                        :xbins {:size 1}}
-                       {:x (for [i (range 0 (js->clj (-> @session :graph-data :avg-saves)))] 1)
-                        :name "saves"
-                        :type "histogram"
-                        :xbins {:size 1}}
-
-                       ]) layout)
+                      [
+                       {:x ["successes" "hits" "wounded" "saves" "damage"]
+                        :y [(-> @session :graph-data :stats :total-success)
+                            (-> @session :graph-data :stats :total-hits)
+                            (-> @session :graph-data :stats :total-wounds)
+                            (-> @session :graph-data :stats :total-saves)
+                            (-> @session :graph-data :stats :total-damage)
+                                                        ]
+                        :type "bar"}
+                       ]))
   (swap! session assoc :show-graph true)
 
   (swap! session assoc :graph-data (:fight (read-response response))))
@@ -398,6 +412,18 @@
       (dropdown-defender-units)
       (dropdown-attacker-weapons)
       [:div.columns [:div.column (models)]]
+      (dropdown "Re-roll number of shots"
+                [{:id "1" :value "none"}
+                 {:id "2" :value "1s"}
+                 {:id "3" :value "all"}] (fn [e] ()))
+      (dropdown "Re-roll number of wounds"
+                [{:id "1" :value "none"}
+                 {:id "2" :value "1s"}
+                 {:id "3" :value "all"}] (fn [e] ()))
+      (dropdown "Additional rules"
+                [{:id "1" :value "None"}
+                 {:id "2" :value "disgusting resilience"}
+                 {:id "3" :value "quantum shielding"}] (fn [e] ()))
       (experiments)
       [:button.button.is-dark
             {:name     "fight"
@@ -418,8 +444,7 @@
 
 
 
-
-   (graph)])
+    (graph)])
 
 (def pages
   {:home #'home-page})
