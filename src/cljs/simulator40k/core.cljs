@@ -82,17 +82,17 @@
   (list
 
    ;;(-> @session :graph-data)
-   (-> @session :graph-data :stats :total-success)
    [:div {:id "graph"}]
 
-   (when (-> @session :graph-data :percentage-success)
-     (list [:p
-            [:b (str "Success ")] (str (gstring/format "%.2f" (-> @session :graph-data :percentage-success)) "%")]
-           ))
-
    (when (-> @session :graph-data :avg-damage)
-     [:p
-        [:b (str "Wounds: " )] (-> @session :graph-data :avg-damage)]
+     (list
+      [:p
+       [:b "Success "] (str (-> @session :graph-data :percentage-success) "%" )]
+      [:p
+       [:b (str "Max wounds: " )] (-> @session :graph-data :max-damage)]
+      [:p
+       [:b (str "Average Wounds: " )] (-> @session :graph-data :avg-damage)])
+
      )
 
 
@@ -377,21 +377,28 @@
 
 
 (defn handler-fight [response]
+  (swap! session assoc :graph-data (:fight (read-response response)))
+
   (js/Plotly.newPlot (.getElementById js/document "graph")
                      (clj->js
                       [
-                       {:x ["successes" "hits" "wounded" "saves" "damage"]
-                        :y [(-> @session :graph-data :stats :total-success)
-                            (-> @session :graph-data :stats :total-hits)
-                            (-> @session :graph-data :stats :total-wounds)
-                            (-> @session :graph-data :stats :total-saves)
-                            (-> @session :graph-data :stats :total-damage)
+                       {:x ["successes" "not successes" "hits" "not hits" "wounds" "not wounds" "saves"  "not saves"]
+                        :y [(-> @session :graph-data :success)
+                            (-> @session :graph-data :not-success)
+                            (-> @session :graph-data :hits)
+                            (-> @session :graph-data :not-hits)
+                            (-> @session :graph-data :wounds)
+                            (-> @session :graph-data :not-wounds)
+                            (-> @session :graph-data :saves)
+                            (-> @session :graph-data :not-saves)
+
+
                                                         ]
                         :type "bar"}
                        ]))
-  (swap! session assoc :show-graph true)
 
-  (swap! session assoc :graph-data (:fight (read-response response))))
+
+  )
 
 (defn home-page []
   [:section.section>div.container>div.content
@@ -411,7 +418,9 @@
       (dropdown-attacker-units)
       (dropdown-defender-units)
       (dropdown-attacker-weapons)
+
       [:div.columns [:div.column (models)]]
+
       (dropdown "Re-roll number of shots"
                 [{:id "1" :value "none"}
                  {:id "2" :value "1s"}
@@ -425,12 +434,14 @@
                  {:id "2" :value "disgusting resilience"}
                  {:id "3" :value "quantum shielding"}] (fn [e] ()))
       (experiments)
+
       [:button.button.is-dark
             {:name     "fight"
              :on-click (fn [e]
                          (.preventDefault e)
                          (println "click")
-
+                         (println (:attacker-model @session))
+                         (println (:defender-model @session))
                          (POST "/api/fight" {:params    {:attacker (:attacker-model @session)
                                                          :defender (:defender-model @session)
                                                          :n (:number-experiments @session)}
@@ -443,7 +454,7 @@
 
 
 
-
+   ;;(str (-> @session :graph-data))
     (graph)])
 
 (def pages

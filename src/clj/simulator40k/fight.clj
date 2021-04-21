@@ -42,7 +42,7 @@
     ))
 
 (defn roll-dice [dice]
-  (if (or (string/includes? dice "D") (= "1" dice))
+  (if (string/includes? dice "D")
     (let [parsed-dice (parse-dice dice)
           add         (:add parsed-dice)
           roll        (reduce + (take
@@ -51,18 +51,20 @@
 
 
       (+ add roll))
-    (read-string dice)))
+    (do
+      (println "dice" dice)
+      (read-string dice))))
 
 
-(defn bs [unit]
-  (read-string (string/replace (:bs (:chars unit)) "+" "")))
+(defn bs [{{:keys [bs]} :chars}]
+  (read-string (string/replace bs "+" "")))
 
-(defn strength [weapon]
-  (read-string (:s (:chars weapon))))
+(defn strength [{{:keys [s]} :chars}]
+  (read-string s))
 
 
-(defn toughness [unit]
-  (read-string (:t (:chars unit))))
+(defn toughness [{{:keys [t]} :chars}]
+  (read-string t))
 
 
 (defn success? [rolled stat]
@@ -70,6 +72,7 @@
 
 (defn hit? [char]
   (let [r (roll 6)]
+    (println "rolled" r)
     (success? r char)))
 
 ;; TODO check double strength weapon
@@ -87,12 +90,7 @@
 
 (defn wound? [weapon target-unit]
   (let [r (roll 6)]
-
-
-
-    (success? r (to-wound weapon target-unit))
-    )
-  )
+    (success? r (to-wound weapon target-unit))))
 
 (defn save? [armor-to-roll]
   (let [s (roll 6)]
@@ -107,7 +105,7 @@
 (defn valid-value [value]
   (not= "-" value))
 
-(defn save [model ap]
+(defn save [model {{:keys [ap]} :chars}]
   ;;(read-string (string/replace (:save (:chars model)) "+" ""))
   (if (valid-value ap)
     (-
@@ -117,33 +115,42 @@
 
 (defn shoot [model1 model2 w]
   (let [h       (hit? (bs model1))
-        s       (save? (save model2 (:ap (:chars w))))
-        wounded (wound? w model2)]
-    {:hit     h
-     :save    s
-     :success (and h (not s) wounded)
-     :wounded wounded}))
+        s       (save? (save model2 w))
+        wounded (wound? w model2)
+        success (and h (not s) wounded)
+        result {:hit     h
+                :saved   (if (and h wounded s)
+                           true
+                           false)
+
+
+
+                :success success
+                :wounded (if h
+                           wounded
+                           false)
+                :damage (if success
+                          (roll-dice (damage w))
+                          0)}]
+    (println result)
+    result))
 
 
 (defn model-weapon [model]
   (first (:weapons model)))
 
-(defn total-damage [shots]
-  (reduce (fn [result value]
-            (+ result (reduce
-                       + (:d value))))
-          0
-          shots))
+;; (defn total-damage [shots]
+;;   (reduce (fn [result value]
+;;             (+ result (reduce
+;;                        + (:d value))))
+;;           0
+;;           shots))
 
 (defn calculate-wounds [model1 model2 w]
   (loop [n      (roll-dice (:type (:chars w)))
          result []]
     (if (> n 0)
-      (let [success (shoot model1 model2 w)]
-        (if (:success success)
-          (let [d (roll-dice (damage w))]
-            (recur (dec n) (conj result (assoc success :d d))))
-          (recur (dec n) (conj result (assoc success :d 0)))))
+      (recur (dec n) (conj result (shoot model1 model2 w)))
       result)
     )
   )
@@ -152,8 +159,8 @@
 ;; TODO: number of attacks * number of units
 ;; number of attacks still not fixed
 (defn monte-carlo-shoot [attacker defender n]
-  (repeat n
-          (calculate-wounds attacker defender (model-weapon attacker)))
+  (repeatedly n
+          #(calculate-wounds attacker defender (model-weapon attacker)))
   )
 
 (defn average
@@ -162,52 +169,112 @@
       0
       (/ (reduce + numbers) (count numbers))))
 
+(defn avg [n total]
+  (/ n total))
 
+
+
+(defn percentage [total number]
+  (* 100 (/ number total)))
+
+
+(defn total-damage [experiments]
+  (map :total-damage
+       (reduce (fn [result experiment]
+                 (conj
+                  result {:total-damage
+                          (reduce + (map :damage experiment))}))
+               []
+               experiments)))
+
+(defn total-success [experiments success]
+  (reduce + (map :total-success
+                 (reduce (fn [result experiment]
+                           (conj
+                            result {:total-success
+                                    (count (filter #(= (:success %) success)
+                                                   experiment))}))
+
+                         []
+                         experiments))))
+
+
+(defn total-wounds [experiments wounded]
+  (reduce + (map :total-wounds
+                 (reduce (fn [result experiment]
+                           (conj
+                            result {:total-wounds
+                                    (count (filter #(= (:wounded %) wounded)
+                                                   experiment))}))
+
+                         []
+                         experiments))))
+
+
+(defn total-hits [experiments hit]
+  (reduce + (map :total-hits
+                 (reduce (fn [result experiment]
+                           (conj
+                            result {:total-hits
+                                    (count (filter #(= (:hit %) hit)
+                                                   experiment))}))
+
+                         []
+                         experiments))))
+
+(defn total-saves [experiments saved]
+  (reduce + (map :total-saves
+                 (reduce (fn [result experiment]
+                           (conj
+                            result {:total-saves
+                                    (count (filter #(= (:saved %) saved)
+                                                   experiment))}))
+
+                         []
+                         experiments))))
 
 (defn compute-stats [experiments]
-  (->>
-   (reduce (fn [result value]
+  {:experiments experiments
+   :avg-damage
+   (/ (float (reduce + (total-damage experiments)))
+      (count experiments))
 
-                (conj result
-                      {:total-damage  (reduce (fn [result value]
-                                               (+ result (:d value)))
-                                             0
-                                             value)
-                       :total-success (count
-                                       (filter #(= (:success %) true)
-                                               value))
+   :success
+   (total-success experiments true)
+
+   :not-success
+   (total-success experiments false)
+
+   :wounds
+   (total-wounds experiments true)
+
+   :not-wounds
+   (total-wounds experiments false)
+
+   :max-damage
+   (apply max (total-damage experiments))
+
+   :percentage-success (percentage
+                        (count experiments)
+                        (total-success experiments true))
 
 
-                       :total-hits   (count
-                                    (filter #(= (:hit %) true)
-                                            value))
-                       :total-wounds (count
-                                      (filter #(= (:wounded %) true)
-                                              value))
-                       :total-saves  (count
-                                     (filter #(= (:save %) true)
-                                             value))})
-                )
-              []
-              experiments)
-   (reduce (fn [result value]
-             (merge-with + result value)
-              )
-           {
-            }))
-  )
+   :hits
+   (total-hits experiments true)
 
-(defn compute-average [experiments k]
-  (average (flatten
-            (for [e experiments]
-              (count (filter #(if (= k :d )
-                                (> (k %) 0)
-                                (= (k %) true))  e))))))
+   :not-hits
+   (total-hits experiments false)
+
+   :saves
+   (total-saves experiments true)
+
+   :not-saves
+   (total-saves experiments false)})
+
+
 
 ;; 100:x = total:number
 ;; 100*number/total
-(defn percentage [total number]
-  (* 100 (/ number total)))
 
 (defn compute-percentage [experiments k total]
   (average (flatten
@@ -222,26 +289,7 @@
 (defn stats [{:keys [attacker defender n]}]
 
   (let [experiments (monte-carlo-shoot attacker defender (read-string n))]
-    {:total              (count experiments)
-     :failed-experiments (for [e experiments]
-                           (filter #(= (:success %) false)  e))
-     :experiments        (for [e experiments]
-                           (filter #(= (:success %) true)  e))
-     :avg-success        (compute-average experiments :success)
-     :avg-hits           (compute-average experiments :hit)
-     :avg-wounded        (compute-average experiments :wounded)
-     :avg-saves          (compute-average experiments :save)
-     :avg-damage         (compute-average experiments :d)
-     :percentage-success (compute-percentage  experiments :d (read-string n))
-
-
-
-     :stats (compute-stats experiments)
-     ;; :success 0
-     ;; :hits    0
-     ;; :wounds  0
-     ;; :not-saves   0
-     }
+    (compute-stats experiments)
 
 
     )
