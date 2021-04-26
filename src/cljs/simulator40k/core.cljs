@@ -22,7 +22,8 @@
 (def number-experiments "10")
 
 (def empty-state
-  {:attacker-roster         nil
+  {:restart                 false
+   :attacker-roster         nil
    :defender-roster         nil
    :number-experiments      number-experiments
    :defender-unit-models    nil
@@ -79,25 +80,19 @@
 
 ;;(str (:graph-data @session))
 (defn graph []
-  (list
+  [:div
 
    ;;(-> @session :graph-data)
    [:div {:id "graph"}]
 
    (when (-> @session :graph-data :avg-damage)
-     (list
-      [:p
+     [:div
+      [:p {:key "success"}
        [:b "Success "] (str (-> @session :graph-data :percentage-success) "%" )]
-      [:p
+      [:p {:key "max-wounds"}
        [:b (str "Max wounds: " )] (-> @session :graph-data :max-damage)]
-      [:p
-       [:b (str "Average Wounds: " )] (-> @session :graph-data :avg-damage)])
-
-     )
-
-
-
-   )
+      [:p {:key "average-wounds"}
+       [:b (str "Average Wounds: " )] (-> @session :graph-data :avg-damage)]])]
 
 
 
@@ -113,7 +108,7 @@
      [:a {:href     "/#"
           :on-click (fn [_]
                       (reset! session empty-state))}
-      [:h1 "Simulator 40k"]]]]])
+      [:h6 "Simulator 40k"]]]]])
 
 (defn file-roaster [role]
   [:div.field
@@ -183,15 +178,17 @@
                                        (println "selected " force-id unit-id model-id k belong-to)
                                        (set-model! force-id unit-id model-id k belong-to))}
      (for [m models]
-       ^{:key (str m (:id (:unit m)))} [:optgroup  {:label (:name (:unit m))}
-                                        ^{:key (str m)} [:option
-                                                         {:idforce  (:id (:force m))
-                                                          :idunit  (:id (:unit m))
-                                                          :idmodel (:id (:model m))} (:name (:model m))]])]]])
+       [:optgroup  {:key (str m (:id (:unit m)))
+                    :label (:name (:unit m))}
+        [:option
+         {:key (str m)
+          :idforce  (:id (:force m))
+          :idunit  (:id (:unit m))
+          :idmodel (:id (:model m))} (:name (:model m))]])]]])
 
 
 (defn dropdown [title data on-change-f]
-  (list [:h1 title]
+  [:div [:h6 title]
         [:div.columns
          [:div.column
           [:div.field
@@ -199,39 +196,41 @@
             [:select.full-width {:id        (str "select-" title)
                                  :on-change on-change-f}
      (for [d data]
-       ^{:key (str d (:id d))}
        [:option
-        {:id (:id d)} (:value d)])]]]]]))
+        {:key (str d (:id d))
+         :id (:id d)} (:value d)])]]]]]])
 
 
 
 
 (defn dropdown-attacker-units []
-  (list [:h1 "Attacker"]
-        [:div.columns
-         [:div.column (dropdown-units
-                       (:attacker-unit-models @session)
-                       :attacker-model :attacker-unit-models)]]))
+  [:div
+   [:h6 {:key "attacker"} "Attacker"]
+   [:div.columns {:key "units"}
+    [:div.column (dropdown-units
+                  (:attacker-unit-models @session)
+                  :attacker-model :attacker-unit-models)]]])
 
 (defn dropdown-defender-units []
-  (list [:h1 "Defender"]
+  [:div [:h6 "Defender"]
    [:div.columns
     [:div.column (dropdown-units
                   (:defender-unit-models @session)
-                  :defender-model :defender-unit-models)]]))
+                  :defender-model :defender-unit-models)]]])
 
 (defn dropdown-weapons [weapons]
-  (list [:h1 "Weapon"]
-        [:div.field
-                       [:div.select.is-dark.full-width
-                        [:select#select-weapons.full-width {:id        "select-weapons"
-                                                            :on-change #(let [e         (js/document.getElementById "select-weapons")
-                                                                              weapon-id (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
-                                                                              ]
-                                                                          (set-weapon! weapon-id))}
-                         (for [w weapons]
-                           [:option
-                            {:id (:id w)} (:name w)])]]]))
+  [:div [:h6 {:key "title"} "Weapon"]
+        [:div.field {:key "field"}
+         [:div.select.is-dark.full-width
+          [:select#select-weapons.full-width {:id        "select-weapons"
+                                              :on-change #(let [e         (js/document.getElementById "select-weapons")
+                                                                weapon-id (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
+                                                                ]
+                                                            (set-weapon! weapon-id))}
+           (for [w weapons]
+             [:option
+              {:id (:id w)
+               :key (str w)} (:name w)])]]]])
 
 (defn dropdown-attacker-weapons []
   [:div.columns
@@ -252,22 +251,22 @@
      :on-change (fn [e]
                    (swap! session assoc :number-experiments (-> e .-target .-value)))
      }]
-   (-> @session :number-experiments)])
+   ])
 
 
 (defn attacker []
-  (list
-   (-> @session :attacker-model :chars)
-   [:h1 (-> @session :attacker-model :name)]
-   [:div.field.is-horizontal
-    [:div.field-label.is-normal
-     [:label.label "BS/WS:"]]
-    [:input.input
-     {:type "text"
-      :defaultValue (-> @session :attacker-model :chars :bs)
-      :on-change (fn [e]
-                   (swap! session assoc-in [:attacker-model :chars :bs] (-> e .-target .-value)))}]
-    (-> @session :attacker-model :chars :bs)]))
+  [:div
+   [:div.border
+    [:h6 {:key "title"} (-> @session :attacker-model :name)]
+    [:div.field.is-horizontal {:key "field"}
+     [:div.field-label.is-normal
+      [:label.label "BS/WS:"]]
+     [:input.input
+      {:type         "text"
+       :defaultValue (-> @session :attacker-model :chars :bs)
+       :on-change    (fn [e]
+                    (swap! session assoc-in [:attacker-model :chars :bs] (-> e .-target .-value)))}]
+     ]]])
 
 
 (defn index-selected-weapon []
@@ -277,78 +276,79 @@
   (swap! session assoc-in [:attacker-model :weapons] [(:attacker-weapon-selected @session)]))
 
 (defn attacker-weapons []
-  (list
-   (-> @session :attacker-weapon-selected)
-   [:h1 (-> @session :attacker-weapon-selected :name)]
-   [:div.field.is-horizontal
-    [:div.field-label.is-normal
-     [:label.label "AP:"]]
-    [:input.input
-     {:type "text" :defaultValue (-> @session :attacker-weapon-selected :chars :ap)
-      :on-change (fn [e]
-                   (swap! session assoc-in [:attacker-weapon-selected :chars :ap] (-> e .-target .-value))
-                   (assoc-weapon-selected!))}
+  [:div
+   [:div.border
+    [:h6 (-> @session :attacker-weapon-selected :name)]
+    [:div.field.is-horizontal
+     [:div.field-label.is-normal
+      [:label.label "AP:"]]
+     [:input.input
+      {:type      "text" :defaultValue (-> @session :attacker-weapon-selected :chars :ap)
+       :on-change (fn [e]
+                    (swap! session assoc-in [:attacker-weapon-selected :chars :ap] (-> e .-target .-value))
+                    (assoc-weapon-selected!))}
+      ]
+
      ]
+    [:div.field.is-horizontal
+     [:div.field-label.is-normal
+      [:label.label "Attacks:"]]
+     [:input.input
+      {:type      "text" :defaultValue (-> @session :attacker-weapon-selected :chars :type)
+       :on-change (fn [e]
+                    (swap! session assoc-in [:attacker-weapon-selected :chars :type] (-> e .-target .-value))
+                    (assoc-weapon-selected!)
+                    )}]
+     ]
+    [:div.field.is-horizontal
+     [:div.field-label.is-normal
+      [:label.label "Strength:"]]
+     [:input.input
+      {:type      "text" :defaultValue (-> @session :attacker-weapon-selected :chars :s)
+       :on-change (fn [e]
+                    (swap! session assoc-in [:attacker-weapon-selected :chars :s] (-> e .-target .-value))
+                    (assoc-weapon-selected!)
+                    )}]
 
-    ]
-   [:div.field.is-horizontal
-    [:div.field-label.is-normal
-     [:label.label "Attacks:"]]
-    [:input.input
-     {:type "text" :defaultValue (-> @session :attacker-weapon-selected :chars :type)
-      :on-change (fn [e]
-                   (swap! session assoc-in [:attacker-weapon-selected :chars :type] (-> e .-target .-value))
-                   (assoc-weapon-selected!)
-                  )}]
-    (-> @session :attacker-weapon-selected :chars :type)]
-   [:div.field.is-horizontal
-    [:div.field-label.is-normal
-     [:label.label "Strength:"]]
-    [:input.input
-     {:type "text" :defaultValue (-> @session :attacker-weapon-selected :chars :s)
-      :on-change (fn [e]
-                   (swap! session assoc-in [:attacker-weapon-selected :chars :s] (-> e .-target .-value))
-                   (assoc-weapon-selected!)
-                   )}]
-
-    ]
-   [:div.field.is-horizontal
-    [:div.field-label.is-normal
-     [:label.label "Damage:"]]
-    [:input.input
-     {:type "text" :defaultValue (-> @session :attacker-weapon-selected :chars :d)
-      :on-change (fn [e]
-                   (swap! session assoc-in [:attacker-weapon-selected :chars :d] (-> e .-target .-value))
-                   (assoc-weapon-selected!)
-                  )}]]
-   ))
+     ]
+    [:div.field.is-horizontal
+     [:div.field-label.is-normal
+      [:label.label "Damage:"]]
+     [:input.input
+      {:type      "text" :defaultValue (-> @session :attacker-weapon-selected :chars :d)
+       :on-change (fn [e]
+                    (swap! session assoc-in [:attacker-weapon-selected :chars :d] (-> e .-target .-value))
+                    (assoc-weapon-selected!)
+                    )}]]
+    ]])
 
 (defn defender []
-  (list
-   (-> @session :defender-model :chars)
-   [:h1 (-> @session :defender-model :name)]
-   [:div.field.is-horizontal
-    [:div.field-label.is-normal
-     [:label.label "Save:"]]
-    [:input.input
-     {:type "text" :defaultValue (-> @session :defender-model :chars :save)
-      :on-change (fn [e]
-                   (swap! session assoc-in [:defender-model :chars :save] (-> e .-target .-value)))}]
-    (-> @session :defender-model :chars :save)]
-   [:div.field.is-horizontal
-    [:div.field-label.is-normal
-     [:label.label "Toughness:"]]
-    [:input.input
-     {:type "text" :defaultValue (-> @session :defender-model :chars :t)
-      :on-change (fn [e]
-                   (swap! session assoc-in [:defender-model :chars :t] (-> e .-target .-value)))}]
-    (-> @session :defender-model :chars :t)]))
+  [:div
+   [:div.border
+    [:h6 (-> @session :defender-model :name)]
+    [:div.field.is-horizontal
+     [:div.field-label.is-normal
+      [:label.label "Save:"]]
+     [:input.input
+      {:type      "text" :defaultValue (-> @session :defender-model :chars :save)
+       :on-change (fn [e]
+                    (swap! session assoc-in [:defender-model :chars :save] (-> e .-target .-value)))}]
+     ]
+    [:div.field.is-horizontal
+     [:div.field-label.is-normal
+      [:label.label "Toughness:"]]
+     [:input.input
+      {:type      "text" :defaultValue (-> @session :defender-model :chars :t)
+       :on-change (fn [e]
+                    (swap! session assoc-in [:defender-model :chars :t] (-> e .-target .-value)))}]
+     ]]])
 
 (defn models []
   [:div.margin
-   (attacker)
-   (attacker-weapons)
-   (defender)])
+   [:div.columns
+    [:div.column (attacker)]
+    [:div.column (attacker-weapons)]
+    [:div.column (defender)]]])
 
 ;; END MODELS
 
@@ -393,69 +393,115 @@
                             (-> @session :graph-data :not-saves)
 
 
-                                                        ]
+                            ]
+                        :marker
+                        {:color ["rgba(204,204,204,1)"
+                                 "rgba(204,204,204,1)"
+                                 "rgba(204,204,204,1)"
+                                 "rgba(204,204,204,1)"
+                                 "rgba(204,204,204,1)"
+                                 "rgba(204,204,204,1)"
+                                 "rgba(204,204,204,1)"
+                                 "rgba(204,204,204,1)"
+                                 ]
+
+                        }
                         :type "bar"}
                        ]))
 
 
   )
 
+
 (defn home-page []
   [:section.section>div.container>div.content
    (title)
-   (when (:show-upload-files @session)
-     (upload-rosters))
-   (when-not (:show-upload-files @session)
-     (when-not (and (:attacker-model @session) (:defender-model @session))
+   (if (:show-upload-files @session)
+     (upload-rosters)
+     (do
        (init-models! (:attacker-roster @session) :attacker-unit-models)
        (init-models! (:defender-roster @session) :defender-unit-models)
        (init-weapons!)
+       [:div
+        [:div.columns {:key "dropdowns"}
+         [:div.column (dropdown-attacker-units)]
+         [:div.column (dropdown-attacker-weapons)]
+         [:div.column (dropdown-defender-units)]
+         ]
 
-       )
-     (list
-
-      (str (:attacker-model @session) (:defender-model @session))
-      (dropdown-attacker-units)
-      (dropdown-defender-units)
-      (dropdown-attacker-weapons)
-
-      [:div.columns [:div.column (models)]]
-
-      (dropdown "Re-roll number of shots"
-                [{:id "1" :value "none"}
-                 {:id "2" :value "1s"}
-                 {:id "3" :value "all"}] (fn [e] ()))
-      (dropdown "Re-roll number of wounds"
-                [{:id "1" :value "none"}
-                 {:id "2" :value "1s"}
-                 {:id "3" :value "all"}] (fn [e] ()))
-      (dropdown "Additional rules"
-                [{:id "1" :value "None"}
-                 {:id "2" :value "disgusting resilience"}
-                 {:id "3" :value "quantum shielding"}] (fn [e] ()))
-      (experiments)
-
-      [:button.button.is-dark
-            {:name     "fight"
-             :on-click (fn [e]
-                         (.preventDefault e)
-                         (println "click")
-                         (println (:attacker-model @session))
-                         (println (:defender-model @session))
-                         (POST "/api/fight" {:params    {:attacker (:attacker-model @session)
-                                                         :defender (:defender-model @session)
-                                                         :n (:number-experiments @session)}
-                                             :handler handler-fight})
+        (models)
 
 
+        [:div.columns {:key "swap"}
+         [:div.column
+          [:button.button.is-dark.is-medium
+           {:name     "Swap"
+            :on-click (fn [e]
+                        (.preventDefault e)
+
+                        (println "swap!")
+                        (let [attacker (-> @session :attacker-model)
+                              weapons  (-> @session :defender-model :weapons)
+                              defender (:defender-model @session)]
+                          (init-models! (:defender-roster @session) :attacker-unit-models)
+                          (init-models! (:attacker-roster @session) :defender-unit-models)
+                          (init-weapons!)
+                          (swap! session assoc :attacker-model defender)
+                          (swap! session assoc :attacker-weapons weapons)
+                          (swap! session assoc :defender-model attacker)
+                          (set-weapon! "0"))
 
 
-                         )} "Fight"]))
+                        )} "Swap Attacker defender"]]]
+
+        [:div.columns {:key "re-rolls"}
+         [:div.column
+          (dropdown "Re-roll shots"
+                    [{:id "1" :value "none"}
+                     {:id "2" :value "1s"}
+                     {:id "3" :value "all"}] (fn [e] ()))]
+         [:div.column
+          (dropdown "Re-roll wounds"
+                    [{:id "1" :value "none"}
+                     {:id "2" :value "1s"}
+                     {:id "3" :value "all"}] (fn [e] ()))]
+         [:div.column
+          (dropdown "Additional rules"
+                    [{:id "1" :value "none"}
+                     {:id "2" :value "disgusting resilience"}
+                     {:id "3" :value "quantum shielding"}
+                     {:id "4" :value "ignore wounds on 5's"}] (fn [e] ()))]
+         [:div.column
+          (dropdown "Runs experiments"
+                    [{:id "1" :value "100"}
+                     {:id "2" :value "1000"}] (fn [e] ()))]]
+
+
+
+
+        [:div.columns {:key "fight"}
+         [:div.column
+          [:button.button.is-dark.is-medium
+           {:name     "fight"
+            :on-click (fn [e]
+                        (.preventDefault e)
+                        (println "click")
+                        (println (:attacker-model @session))
+                        (println (:defender-model @session))
+                        (POST "/api/fight" {:params  {:attacker (:attacker-model @session)
+                                                      :defender (:defender-model @session)
+                                                      :n        (:number-experiments @session)}
+                                            :handler handler-fight})
+
+
+
+
+                        )} "Fight"]]]]))
 
 
 
    ;;(str (-> @session :graph-data))
-    (graph)])
+   (graph)])
 
 (def pages
   {:home #'home-page})
@@ -503,3 +549,6 @@
 ;;(cljs.pprint/pprint (first (filter #(= (:id %) "1") (:attacker-weapons @session))))
 ;;(cljs.pprint/pprint (:attacker-model @session))
 ;;(cljs.pprint/pprint (:graph-data @session))
+
+
+(swap! session update :restart #(complement %))
