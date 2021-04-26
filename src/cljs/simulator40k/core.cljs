@@ -371,11 +371,6 @@
   (-> (.parse js/JSON response) (js->clj :keywordize-keys true)))
 
 
-(defn graph-data [k]
-  (js->clj (for [i (range (-> @session :graph-data k))]
-             k)))
-
-
 (defn handler-fight [response]
   (swap! session assoc :graph-data (:fight (read-response response)))
 
@@ -419,9 +414,11 @@
    (if (:show-upload-files @session)
      (upload-rosters)
      (do
-       (init-models! (:attacker-roster @session) :attacker-unit-models)
-       (init-models! (:defender-roster @session) :defender-unit-models)
-       (init-weapons!)
+
+       (when (and (empty? (:attacker-unit-models @session)) (empty? (:defender-unit-models @session)))
+         (init-models! (:attacker-roster @session) :attacker-unit-models)
+         (init-models! (:defender-roster @session) :defender-unit-models)
+         (init-weapons!))
        [:div
         [:div.columns {:key "dropdowns"}
          [:div.column (dropdown-attacker-units)]
@@ -442,15 +439,18 @@
                         (println "swap!")
                         (let [attacker (-> @session :attacker-model)
                               weapons  (-> @session :defender-model :weapons)
-                              defender (:defender-model @session)]
-                          (init-models! (:defender-roster @session) :attacker-unit-models)
-                          (init-models! (:attacker-roster @session) :defender-unit-models)
-                          (init-weapons!)
+                              defender (:defender-model @session)
+                              attacker-unit-models (-> @session :attacker-unit-models)]
+                          ;;(init-models! (:defender-roster @session) :attacker-unit-models)
+                          ;;(init-models! (:attacker-roster @session) :defender-unit-models)
+                          ;;(init-weapons!)
+                          (swap! session assoc :attacker-unit-models (-> @session :defender-unit-models))
+                          (swap! session assoc :defender-unit-models attacker-unit-models)
+                          (swap! session assoc :attacker-model defender)
                           (swap! session assoc :attacker-model defender)
                           (swap! session assoc :attacker-weapons weapons)
                           (swap! session assoc :defender-model attacker)
                           (set-weapon! "0"))
-
 
                         )} "Swap Attacker defender"]]]
 
