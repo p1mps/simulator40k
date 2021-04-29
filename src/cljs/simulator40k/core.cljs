@@ -204,22 +204,36 @@
     [:div.column
      (into [:div]
            (for [i (range 0 (get @num-rules key-rule))]
-             [:div.field
-              [:div.select.is-dark.full-width
-               [:select.full-width {:id        (str "select-" title)
-                                    :on-change on-change-f}
-                (for [d data]
-                  [:option
-                   {:key (str d (:id d))
-                    :id  (:id d)} (:value d)
-                  ])]]]))]
-    (when-not (= key-rule :runs)
-      [:div.add
+
+             [:div.columns
+              [:div.field
+               [:div.select.is-dark.full-width
+                [:select.full-width {:id        (str "select-" title)
+                                     :on-change on-change-f}
+                 (for [d data]
+                   [:option
+                    {:key (str d (:id d))
+                     :id  (:id d)} (:value d)
+                    ])
+                 ]
+                ]]
+              (when-not (= key-rule :runs)
+      [:div
        [:a {:href     "/#"
             :on-click (fn [e]
                         (.preventDefault e)
-                        (println "click add") (swap! num-rules update key-rule inc))}
-        [:span.material-icons "add"]]])]
+                        (if (= i 0)
+                          (swap! num-rules update key-rule inc)
+                          (swap! num-rules update key-rule dec)
+                          )
+                        )}
+        (if (= i 0)
+          [:span.material-icons "add"]
+          [:span.material-icons "remove"]
+          )]])
+
+              ]))]
+    ]
 
    ])
 
