@@ -82,6 +82,7 @@
 
    :project/dev  {:jvm-opts ["-Dconf=dev-config.edn" ]
                   :dependencies [[binaryage/devtools "1.0.2"]
+                                 [figwheel-sidecar "0.5.19"]
                                  [cider/piggieback "0.5.2"]
                                  [doo "0.1.11"]
                                  [com.bhauman/figwheel-main "0.2.13"]
@@ -89,6 +90,7 @@
                                  [pjstadig/humane-test-output "0.10.0"]
                                  [prone "2020-01-17"]
                                  [ring/ring-devel "1.9.1"]
+                                 [com.bhauman/rebel-readline-cljs "0.1.4"]
                                  [ring/ring-mock "0.4.0"]]
                   :plugins      [[com.jakemccrary/lein-test-refresh "0.24.1"]
                                  [jonase/eastwood "0.3.5"]
@@ -111,7 +113,8 @@
                   :doo {:build "test"}
                   :source-paths ["env/dev/clj" ]
                   :resource-paths ["env/dev/resources"]
-                  :repl-options {:init-ns user
+                  :repl-options {:nrepl-middleware [cider.piggieback/wrap-cljs-repl]
+                                 :init-ns user
                                  :timeout 120000}
                   :injections [(require 'pjstadig.humane-test-output)
                                (pjstadig.humane-test-output/activate!)]}

@@ -113,13 +113,18 @@
                                       (for [u (:units f)]
                                         (for [m (:models u)]
                                           {:unit u
-                                           :model   (dissoc m :id)})))))]
+                                           :model
+                                           (if (> (:number m) 1)
+                                             (assoc (dissoc m :id) :name (str (:name m) " x " (:number m)))
+                                             (dissoc m :id))
+                                           })))))]
     (for [f forces]
       (assoc f :units
              (for [u (:units f)]
                (assoc u :models
                       (assoc-ids
-                       (map :model (find-unique-models u unique-models)))))))))
+                       (map :model (find-unique-models u unique-models)))
+                      ))))))
 
 
 (defn file->edn [file]

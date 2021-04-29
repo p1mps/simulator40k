@@ -19,10 +19,14 @@
    [clojure.string :as string])
   (:import goog.History))
 
-(def number-experiments "10")
+(def number-experiments "100")
 
 (def empty-state
-  {:restart                 false
+  {:re-rolls                {:hits "none"
+                             :wounds "none"}
+   :additional-rule         nil
+   :runs                    number-experiments
+   :restart                 false
    :attacker-roster         nil
    :defender-roster         nil
    :number-experiments      number-experiments
@@ -39,6 +43,10 @@
    :show-graph              false
    :files                   {:Attacker nil
                              :Defender nil}})
+
+(def runs-experiments
+  [{:id "1" :value "100"}
+   {:id "2" :value "1000"}])
 
 (defonce session (r/atom empty-state))
 
@@ -61,20 +69,6 @@
 ;;     (s/as-svg :width 500 :height 200))
 
 
-(defn layout [n]
-  (clj->js {:xaxis {:type  "integer",
-                    :autorange false
-                    :fixedrange true
-                    :range [0 10]}
-            :yaxis {:title "Value"
-                    :tickformat ",d"}
-            :barmode "group"
-            :bargap 0.5
-            :width 450
-            }))
-
-
-
 (def data {:type "histogram"
            :xbins {:size 1}})
 
@@ -82,15 +76,20 @@
 (defn graph []
   [:div
 
-   ;;(-> @session :graph-data)
+   [:p (str "Attacker " (-> @session :attacker-model :chars))]
+   [:p (str "Weapon " (first (-> @session :attacker-model :weapons)))]
+   [:p (str "Defender " (-> @session :defender-model :chars))]
    [:div {:id "graph"}]
 
    (when (-> @session :graph-data :avg-damage)
      [:div
       [:p {:key "success"}
        [:b "Success "] (str (-> @session :graph-data :percentage-success) "%" )]
+      [:p [:b (str "Min wounds: " )] (-> @session :graph-data :min-damage)]
       [:p {:key "max-wounds"}
-       [:b (str "Max wounds: " )] (-> @session :graph-data :max-damage)]
+       [:b (str "Max wounds: " )] (-> @session :graph-data :max-damage)
+       ]
+
       [:p {:key "average-wounds"}
        [:b (str "Average Wounds: " )] (-> @session :graph-data :avg-damage)]])]
 
@@ -187,18 +186,43 @@
           :idmodel (:id (:model m))} (:name (:model m))]])]]])
 
 
-(defn dropdown [title data on-change-f]
+(def num-rules
+  (r/atom
+   {:hit    1
+    :wound  1
+    :damage 1
+    :ap     1
+    :runs   1
+
+
+    }))
+
+
+(defn dropdown [title data on-change-f key-rule]
   [:div [:h6 title]
-        [:div.columns
-         [:div.column
-          [:div.field
-           [:div.select.is-dark.full-width
-            [:select.full-width {:id        (str "select-" title)
-                                 :on-change on-change-f}
-     (for [d data]
-       [:option
-        {:key (str d (:id d))
-         :id (:id d)} (:value d)])]]]]]])
+   [:div.columns
+    [:div.column
+     (into [:div]
+           (for [i (range 0 (get @num-rules key-rule))]
+             [:div.field
+              [:div.select.is-dark.full-width
+               [:select.full-width {:id        (str "select-" title)
+                                    :on-change on-change-f}
+                (for [d data]
+                  [:option
+                   {:key (str d (:id d))
+                    :id  (:id d)} (:value d)
+                  ])]]]))]
+    (when-not (= key-rule :runs)
+      [:div.add
+       [:a {:href     "/#"
+            :on-click (fn [e]
+                        (.preventDefault e)
+                        (println "click add") (swap! num-rules update key-rule inc))}
+        [:span.material-icons "add"]]])]
+
+   ])
+
 
 
 
@@ -241,19 +265,6 @@
 
 
 ;; MODEL SELECTED
-(defn experiments []
-  [:div.field.is-horizontal
-   [:div.field-label.is-normal
-    [:label.label "Runs:"]]
-   [:input.input
-    {:type         "text"
-     :defaultValue (:number-experiments @session)
-     :on-change (fn [e]
-                   (swap! session assoc :number-experiments (-> e .-target .-value)))
-     }]
-   ])
-
-
 (defn attacker []
   [:div
    [:div.border
@@ -294,7 +305,7 @@
      [:div.field-label.is-normal
       [:label.label "Attacks:"]]
      [:input.input
-      {:type      "text" :defaultValue (-> @session :attacker-weapon-selected :chars :type)
+      {:type      "text" :defaultValue (-> @session :attacker-model :number)
        :on-change (fn [e]
                     (swap! session assoc-in [:attacker-weapon-selected :chars :type] (-> e .-target .-value))
                     (assoc-weapon-selected!)
@@ -328,11 +339,13 @@
     [:h6 (-> @session :defender-model :name)]
     [:div.field.is-horizontal
      [:div.field-label.is-normal
-      [:label.label "Save:"]]
+      [:label.label "Save: "]
+      ]
      [:input.input
       {:type      "text" :defaultValue (-> @session :defender-model :chars :save)
        :on-change (fn [e]
                     (swap! session assoc-in [:defender-model :chars :save] (-> e .-target .-value)))}]
+
      ]
     [:div.field.is-horizontal
      [:div.field-label.is-normal
@@ -341,7 +354,8 @@
       {:type      "text" :defaultValue (-> @session :defender-model :chars :t)
        :on-change (fn [e]
                     (swap! session assoc-in [:defender-model :chars :t] (-> e .-target .-value)))}]
-     ]]])
+     ]
+    [:p "(if Invuln save set AP 0)"]]])
 
 (defn models []
   [:div.margin
@@ -454,27 +468,59 @@
 
                         )} "Swap Attacker defender"]]]
 
-        [:div.columns {:key "re-rolls"}
+        [:div.columns
          [:div.column
-          (dropdown "Re-roll shots"
+          (dropdown "Hit rules"
+                    [{:id "0" :value "None"}
+                     {:id "1" :value "Re-roll 1s"}
+                     {:id "2" :value "Re-roll all"}
+                     {:id "3" :value "Exploding 6's"}
+                     {:id "4" :value "Auto wound on 6's"}
+                     {:id "5" :value "Auto hit"}
+                     {:id "6" :value "Extra hit on 6's"}]
+                    (fn [element]
+                      (.preventDefault element)
+                      (let [e (.getElementById js/document "select-Runs experiments")
+                            id (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
+                            runs (first (filter #(= (:id %) id) runs-experiments))]
+                        (println runs)
+                        (swap! session assoc :runs (:value runs))
+                        )) :hit)]
+         [:div.column
+          (dropdown "Wounds rules"
+                    [{:id "0" :value "None"}
+                     {:id "1" :value "Re-roll 1s"}
+                     {:id "2" :value "Re-roll all"}
+                     {:id "3" :value "Mortal wounds on 6's"}
+                     {:id "3" :value "+1 damage on 6's"}
+                     {:id "4" :value "Ignore Fnp"}
+                     {:id "4" :value "Ignore wounds on 5's"}]
+                    (fn [e] ()) :wound)]
+
+         [:div.column
+          (dropdown "Damage rules"
+                    [{:id "0" :value "None"}
+                     {:id "1" :value "Double damage on 6's"}
+                     {:id "2" :value "First wound 0 damage"}]
+                    (fn [e] ()) :damage)]
+
+         [:div.column
+          (dropdown " Ap rules"
                     [{:id "1" :value "none"}
-                     {:id "2" :value "1s"}
-                     {:id "3" :value "all"}] (fn [e] ()))]
+                     {:id "2" :value "Increase AP on 6's"}
+                     {:id "6" :value "quantum shielding"}] (fn [e] ()) :ap)]
+
          [:div.column
-          (dropdown "Re-roll wounds"
-                    [{:id "1" :value "none"}
-                     {:id "2" :value "1s"}
-                     {:id "3" :value "all"}] (fn [e] ()))]
-         [:div.column
-          (dropdown "Additional rules"
-                    [{:id "1" :value "none"}
-                     {:id "2" :value "disgusting resilience"}
-                     {:id "3" :value "quantum shielding"}
-                     {:id "4" :value "ignore wounds on 5's"}] (fn [e] ()))]
-         [:div.column
-          (dropdown "Runs experiments"
-                    [{:id "1" :value "100"}
-                     {:id "2" :value "1000"}] (fn [e] ()))]]
+          (dropdown "Runs"
+                    runs-experiments
+                    (fn [element]
+                      (.preventDefault element)
+                      (let [e (.getElementById js/document "select-Runs experiments")
+                            id (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
+                            runs (first (filter #(= (:id %) id) runs-experiments))]
+                        (println runs)
+                        (swap! session assoc :runs (:value runs))
+                        )) :runs)]]
 
 
 
@@ -490,7 +536,7 @@
                         (println (:defender-model @session))
                         (POST "/api/fight" {:params  {:attacker (:attacker-model @session)
                                                       :defender (:defender-model @session)
-                                                      :n        (:number-experiments @session)}
+                                                      :n        (:runs @session)}
                                             :handler handler-fight})
 
 

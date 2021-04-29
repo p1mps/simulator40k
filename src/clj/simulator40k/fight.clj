@@ -51,9 +51,7 @@
 
 
       (+ add roll))
-    (do
-      (println "dice" dice)
-      (read-string dice))))
+    dice))
 
 
 (defn bs [{{:keys [bs]} :chars}]
@@ -72,7 +70,6 @@
 
 (defn hit? [char]
   (let [r (roll 6)]
-    (println "rolled" r)
     (success? r char)))
 
 ;; TODO check double strength weapon
@@ -99,7 +96,10 @@
       (>= s armor-to-roll))))
 
 (defn damage [weapon]
-  (:d (:chars weapon)))
+  (let [damage (:d (:chars weapon))]
+    (if (integer? damage)
+      damage
+      (read-string damage))))
 
 
 (defn valid-value [value]
@@ -132,7 +132,6 @@
                 :damage (if success
                           (roll-dice (damage w))
                           0)}]
-    (println result)
     result))
 
 
@@ -147,7 +146,7 @@
 ;;           shots))
 
 (defn calculate-wounds [model1 model2 w]
-  (loop [n      (roll-dice (:type (:chars w)))
+  (loop [n      (roll-dice (:number model1))
          result []]
     (if (> n 0)
       (recur (dec n) (conj result (shoot model1 model2 w)))
@@ -254,9 +253,14 @@
    :max-damage
    (apply max (total-damage experiments))
 
-   :percentage-success (percentage
-                        (count experiments)
-                        (total-success experiments true))
+   :min-damage
+   (apply min (total-damage experiments))
+
+   :percentage-success (format "%.2f"
+                               (float (percentage
+                                       (+ (total-success experiments true)
+                                          (total-success experiments false))
+                                       (total-success experiments true))))
 
 
    :hits
@@ -275,17 +279,6 @@
 
 ;; 100:x = total:number
 ;; 100*number/total
-
-(defn compute-percentage [experiments k total]
-  (average (flatten
-            (for [e experiments]
-              (percentage  (count e) (count (filter #(if (= k :d )
-                                                       (> (k %) 0)
-                                                       (= (k %) true))  e)))
-              ))))
-
-
-
 (defn stats [{:keys [attacker defender n]}]
 
   (let [experiments (monte-carlo-shoot attacker defender (read-string n))]
