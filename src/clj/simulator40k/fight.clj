@@ -36,9 +36,8 @@
 (defn roll [dice]
   (cond
     (> dice 6) 0
-    (< dice 0) 0
+    (<= dice 0) 0
     (and (>= dice 1) (<= dice 6))
-
     (rand-nth (range 1 (+ 1 dice)))))
 
 (defn roll-dice [dice]
@@ -50,7 +49,7 @@
                                  (repeatedly (partial roll (:dice parsed-dice)))))]
 
       (+ add roll))
-    dice))
+    (read-string dice)))
 
 (defn bs [{{:keys [bs]} :chars}]
   (read-string (string/replace bs "+" "")))
