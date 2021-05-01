@@ -32,7 +32,6 @@
   [{:id "1" :value "100"}
    {:id "2" :value "1000"}])
 
-
 (def session (r/atom empty-state))
 
 (def hit-rules
@@ -51,7 +50,8 @@
    {:id "3" :value "Mortal wounds on 6's"}
    {:id "3" :value "+1 damage on 6's"}
    {:id "4" :value "Ignore Fnp"}
-   {:id "4" :value "Ignore wounds on 5's"}])
+   {:id "5" :value "Ignore wounds on 5's"}
+   {:id "5" :value "Always wound on 2's"}])
 
 (def damage-rules
   [{:id "0" :value "None"}

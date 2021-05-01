@@ -2,12 +2,12 @@
   "Userspace functions you can run by default in your local REPL."
   (:require
    [simulator40k.config :refer [env]]
-    [clojure.pprint]
-    [clojure.spec.alpha :as s]
-    [expound.alpha :as expound]
-    [mount.core :as mount]
-    [simulator40k.figwheel :refer [start-fw stop-fw cljs]]
-    [simulator40k.core :refer [start-app]]))
+   [clojure.pprint]
+   [clojure.spec.alpha :as s]
+   [expound.alpha :as expound]
+   [mount.core :as mount]
+   [simulator40k.figwheel :refer [start-fw stop-fw cljs]]
+   [simulator40k.core :refer [start-app]]))
 
 (alter-var-root #'s/*explain-out* (constantly expound/printer))
 

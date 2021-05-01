@@ -17,15 +17,13 @@
      :body    (json/generate-string {:fight
                                      stats})}))
 
-
 (defn parse-rosters [request]
   {:status 200
    :headers {}
    :body {:attacker-roster
           (parse/parse (:tempfile (:Attacker (:params request))))
           :defender-roster
-          (parse/parse (:tempfile (:Defender (:params request))))
-          }})
+          (parse/parse (:tempfile (:Defender (:params request))))}})
 
 (defn home-page [request]
   (layout/render request "home.html"))

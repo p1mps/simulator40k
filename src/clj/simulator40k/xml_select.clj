@@ -9,15 +9,12 @@
    :selection
    (zx/attr= :type "model")))
 
-
-
 (defn unit->models-as-upgrades [unit]
   (zx/xml->
    unit
    :selections
    :selection
    (zx/attr= :type "upgrade")))
-
 
 (defn units [force]
   (zx/xml->
@@ -27,12 +24,9 @@
    :selection
    (zx/attr= :type "unit")))
 
-
 (defn forces->force [forces]
   (zx/xml->
-   forces
-
-   ))
+   forces))
 
 (defn models [force]
   (zx/xml->
@@ -42,11 +36,9 @@
    :selection
    (zx/attr= :type "model")))
 
-
 (defn forces [zipper]
   (zx/xml->
    zipper
    :roster
    :forces
-   :force
-   ))
+   :force))

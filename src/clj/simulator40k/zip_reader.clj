@@ -25,7 +25,6 @@
           (recur (.getNextEntry stream))))))
   (slurp output))
 
-
 (defn zipper [file]
   (-> (.getBytes file)
       java.io.ByteArrayInputStream.

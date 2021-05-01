@@ -43,9 +43,9 @@
                        file-defender (aget (.-files
                                             (.getElementById js/document "Defender")) 0)
                        form-data     (doto
-                                         (js/FormData.)
+                                      (js/FormData.)
                                        (.append "Attacker" file-attacker)
                                        (.append "Defender" file-defender))]
                    (POST "/api/parse" {:body    form-data
                                        :handler handler-upload}))
-                 (swap! state/session assoc :show-upload-files false))} "Upload"]] )
+                 (swap! state/session assoc :show-upload-files false))} "Upload"]])

@@ -2,7 +2,6 @@
   (:require
    [clojure.string :as string]))
 
-
 (def number-experiments 100)
 
 
@@ -13,6 +12,8 @@
 
 ;; D6/3D6/3D6+2
 ;; nil when just "1"
+
+
 (defn parse-dice [dice]
   (if (string/includes? dice "D")
     (let [[times dice] (string/split dice #"D")]
@@ -30,16 +31,15 @@
 
 
 ;; roll 6 3
+
+
 (defn roll [dice]
   (cond
     (> dice 6) 0
     (< dice 0) 0
     (and (>= dice 1) (<= dice 6))
 
-
-    (rand-nth (range 1 (+ 1 dice)))
-
-    ))
+    (rand-nth (range 1 (+ 1 dice)))))
 
 (defn roll-dice [dice]
   (if (string/includes? dice "D")
@@ -49,10 +49,8 @@
                                  (:times parsed-dice)
                                  (repeatedly (partial roll (:dice parsed-dice)))))]
 
-
       (+ add roll))
     dice))
-
 
 (defn bs [{{:keys [bs]} :chars}]
   (read-string (string/replace bs "+" "")))
@@ -60,10 +58,8 @@
 (defn strength [{{:keys [s]} :chars}]
   (read-string s))
 
-
 (defn toughness [{{:keys [t]} :chars}]
   (read-string t))
-
 
 (defn success? [rolled stat]
   (>= rolled stat))
@@ -82,8 +78,7 @@
       (>= strength  (* 2 toughness)) 2
       (= toughness strength)         4
       (>= (- toughness strength) 1)  5
-      (<= (- toughness strength) -1) 3
-      )))
+      (<= (- toughness strength) -1) 3)))
 
 (defn wound? [weapon target-unit]
   (let [r (roll 6)]
@@ -97,10 +92,10 @@
 
 (defn damage [weapon]
   (let [damage (:d (:chars weapon))]
+    (println damage)
     (if (integer? damage)
       damage
       (read-string damage))))
-
 
 (defn valid-value [value]
   (not= "-" value))
@@ -109,9 +104,9 @@
   ;;(read-string (string/replace (:save (:chars model)) "+" ""))
   (if (valid-value ap)
     (-
-     (read-string (string/replace (:save (:chars model)) "+" "") )
+     (read-string (string/replace (:save (:chars model)) "+" ""))
      (read-string ap))
-    (read-string (string/replace (:save (:chars model)) "+" "") )))
+    (read-string (string/replace (:save (:chars model)) "+" ""))))
 
 (defn shoot [model1 model2 w]
   (let [h       (hit? (bs model1))
@@ -123,8 +118,6 @@
                            true
                            false)
 
-
-
                 :success success
                 :wounded (if h
                            wounded
@@ -133,7 +126,6 @@
                           (roll-dice (damage w))
                           0)}]
     result))
-
 
 (defn model-weapon [model]
   (first (:weapons model)))
@@ -150,32 +142,28 @@
          result []]
     (if (> n 0)
       (recur (dec n) (conj result (shoot model1 model2 w)))
-      result)
-    )
-  )
+      result)))
 
 
 ;; TODO: number of attacks * number of units
 ;; number of attacks still not fixed
+
+
 (defn monte-carlo-shoot [attacker defender n]
   (repeatedly n
-          #(calculate-wounds attacker defender (model-weapon attacker)))
-  )
+              #(calculate-wounds attacker defender (model-weapon attacker))))
 
 (defn average
   [numbers]
-    (if (empty? numbers)
-      0
-      (/ (reduce + numbers) (count numbers))))
+  (if (empty? numbers)
+    0
+    (/ (reduce + numbers) (count numbers))))
 
 (defn avg [n total]
   (/ n total))
 
-
-
 (defn percentage [total number]
   (* 100 (/ number total)))
-
 
 (defn total-damage [experiments]
   (map :total-damage
@@ -197,7 +185,6 @@
                          []
                          experiments))))
 
-
 (defn total-wounds [experiments wounded]
   (reduce + (map :total-wounds
                  (reduce (fn [result experiment]
@@ -208,7 +195,6 @@
 
                          []
                          experiments))))
-
 
 (defn total-hits [experiments hit]
   (reduce + (map :total-hits
@@ -262,7 +248,6 @@
                                           (total-success experiments false))
                                        (total-success experiments true))))
 
-
    :hits
    (total-hits experiments true)
 
@@ -279,19 +264,12 @@
 
 ;; 100:x = total:number
 ;; 100*number/total
+
+
 (defn stats [{:keys [attacker defender n]}]
 
   (let [experiments (monte-carlo-shoot attacker defender (read-string n))]
-    (compute-stats experiments)
-
-
-    )
-
-
-
-
-
-  )
+    (compute-stats experiments)))
 
 (comment
 
@@ -304,9 +282,6 @@
 
   (simulator40k.parse/parse "Death riders 2000.rosz")
 
-
-
-
   (shoot captain-model captain-model)
 
   (monte-carlo-shoot captain-model captain-model 1)
@@ -316,9 +291,4 @@
 
   (stats captain squad)
 
-
-  (stats squad squad)
-
-
-
-    )
+  (stats squad squad))
