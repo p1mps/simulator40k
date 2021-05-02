@@ -51,7 +51,7 @@
       (+ add roll))
     (read-string dice)))
 
-(defn bs [{{:keys [bs]} :chars}]
+(defn read-bs [bs]
   (read-string (string/replace bs "+" "")))
 
 (defn strength [{{:keys [s]} :chars}]
@@ -63,15 +63,15 @@
 (defn success? [rolled stat]
   (>= rolled stat))
 
-(defn hit? [char]
+(defn hit? [{{:keys [bs]} :chars}]
   (let [r (roll 6)]
-    (success? r char)))
+    (success? r (read-bs bs))))
 
 ;; TODO check double strength weapon
 ;; check more than double
-(defn to-wound [weapon target-unit]
+(defn to-wound [weapon target-model]
   (let [strength  (strength weapon)
-        toughness (toughness target-unit)]
+        toughness (toughness target-model)]
     (cond
       (>= toughness (* 2 strength))  6
       (>= strength  (* 2 toughness)) 2
@@ -79,37 +79,53 @@
       (>= (- toughness strength) 1)  5
       (<= (- toughness strength) -1) 3)))
 
-(defn wound? [weapon target-unit]
+(defn wound? [weapon target-model]
   (let [r (roll 6)]
-    (success? r (to-wound weapon target-unit))))
-
-(defn save? [armor-to-roll]
-  (let [s (roll 6)]
-    (if (> armor-to-roll 6)
-      false
-      (>= s armor-to-roll))))
-
-(defn damage [weapon]
-  (let [damage (:d (:chars weapon))]
-    (println damage)
-    (if (integer? damage)
-      damage
-      (read-string damage))))
+    (success? r (to-wound weapon target-model))))
 
 (defn valid-value [value]
   (not= "-" value))
 
-(defn save [model {{:keys [ap]} :chars}]
+(defn to-save [{{:keys [save]} :chars} {{:keys [ap]} :chars}]
   ;;(read-string (string/replace (:save (:chars model)) "+" ""))
-  (if (valid-value ap)
-    (-
-     (read-string (string/replace (:save (:chars model)) "+" ""))
-     (read-string ap))
-    (read-string (string/replace (:save (:chars model)) "+" ""))))
+  (let [save (read-string (string/replace save "+" ""))]
+    (if (valid-value ap)
+      (-
+       save
+       (read-string ap))
+      save)))
+
+
+(defn save? [weapon target-model]
+  (let [to-roll (to-save target-model weapon)
+        r (roll 6)]
+    (>= r to-roll)))
+
+(defn damage [{{:keys [d]} :chars}]
+  (read-string d))
+
+(defn all-models-hit [model]
+  (repeat (:number model)  {:hit (hit? model)}))
+
+(defn all-hits-wound [hits weapon target-unit]
+  (for [h hits]
+    (if (:hit h)
+      (assoc h :wound (wound? weapon target-unit))
+      (assoc h :wound false))))
+
+(defn all-wounds-save [wounds weapon target]
+  (for [w wounds]
+    (if (:wound w)
+      (assoc w :saved (save? weapon target))
+      (assoc w :saved false))))
+
+(defn all-success [results]
+  (map #(assoc % :success (and (:hit %) (not (:saved %)) (:wound %))) results))
+
 
 (defn shoot [model1 model2 w]
-  (let [h       (hit? (bs model1))
-        s       (save? (save model2 w))
+  (let [h       (hit? model1)
+        s       (save? model2 w)
         wounded (wound? w model2)
         success (and h (not s) wounded)
         result {:hit     h
@@ -125,6 +141,13 @@
                           (roll-dice (damage w))
                           0)}]
     result))
+
+(defn all-shoot [shooter-model target weapon]
+  (-> (all-models-hit shooter-model)
+      (all-hits-wound weapon target)
+      (all-wounds-save weapon target)
+      (all-success))
+  )
 
 (defn model-weapon [model]
   (first (:weapons model)))
@@ -266,9 +289,8 @@
 
 
 (defn stats [{:keys [attacker defender n]}]
-
-  (let [experiments (monte-carlo-shoot attacker defender (read-string n))]
-    (compute-stats experiments)))
+  (-> (monte-carlo-shoot attacker defender (read-string n))
+      (compute-stats)))
 
 (comment
 
