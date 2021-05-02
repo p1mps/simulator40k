@@ -104,8 +104,8 @@
 (defn damage [{{:keys [d]} :chars}]
   (read-string d))
 
-(defn all-models-hit [model]
-  (repeat (:number model)  {:hit (hit? model)}))
+(defn all-models-hit [model weapon]
+  (repeat (* (roll-dice (:weapon-attacks weapon)) (:number model))  {:hit (hit? model)}))
 
 (defn all-hits-wound [hits weapon target-unit]
   (for [h hits]
@@ -143,7 +143,7 @@
     result))
 
 (defn all-shoot [shooter-model target weapon]
-  (-> (all-models-hit shooter-model)
+  (-> (all-models-hit shooter-model weapon)
       (all-hits-wound weapon target)
       (all-wounds-save weapon target)
       (all-success))

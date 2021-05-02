@@ -130,7 +130,7 @@
 
 (deftest all-models-hit
   (with-redefs [sut/roll (fn [_] 5)]
-    (is (= (repeat 9 {:hit true}) (sut/all-models-hit guardsmen)))
+    (is (= (repeat 9 {:hit true}) (sut/all-models-hit guardsmen lasgun)))
     ))
 
 
@@ -147,7 +147,9 @@
 
 
 (deftest all-shot
-  (is (= 9 (count (sut/all-shoot guardsmen intercessor lasgun)))))
+  (is (= 9 (count (sut/all-shoot guardsmen intercessor lasgun))))
+
+  )
 
 
 (run-tests)

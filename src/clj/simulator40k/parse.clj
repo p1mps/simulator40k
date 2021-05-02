@@ -21,8 +21,7 @@
 (defn keywordize-chars [chars]
   (reduce (fn [result value]
             (let [[characteristic v]  value
-                  c (keywordize characteristic)
-                  v (or (and v (clojure.string/replace v #"Grenade|Heavy|Pistol" "")) v)]
+                  c (keywordize characteristic)]
               (assoc result c v)))
           {}
           chars))
@@ -42,10 +41,11 @@
                                          (zx/xml-> w :characteristics :characteristic))
                                     (keywordize-chars))
                             ;; TODO: FIX THIS
-                            :weapon-attacks 1000}))
+                            }))
 
             []
-            weapons)))
+            weapons)
+    ))
 
 (defn characteristics [model]
   (let [chars (zx/xml-> model
@@ -71,6 +71,19 @@
                     (str id))))
       result)))
 
+(defn assoc-weapon-attacks [weapons]
+  (map #(cond
+          (= "Melee" (-> % :chars :type)) (assoc % :weapon-attacks (:a %))
+          (or
+           (clojure.string/includes? (-> % :chars :type) "Grenade")
+           (clojure.string/includes? (-> % :chars :type) "Heavy")
+           (clojure.string/includes? (-> % :chars :type) "Pistol"))
+          (assoc % :weapon-attacks (clojure.string/replace (-> % :chars :type) #"Grenade|Heavy|Pistol" ""))
+          :else
+          (assoc % :weapon-attacks "1")
+
+          ) weapons))
+
 (defn get-models [force]
   (for [m (xml-select/models force)]
     {:name  (attrs-name (first m))
@@ -79,7 +92,8 @@
      (assoc-ids (list {:name    (attrs-name (first m))
                        :number  (read-string (:number (:attrs (first m))))
                        :chars   (characteristics  m)
-                       :weapons (assoc-ids (weapons m))}))}))
+                       :weapons (assoc-weapon-attacks
+                                 (assoc-ids (weapons m)))}))}))
 
 (defn get-units [force]
   (for [u (xml-select/units force)]
@@ -92,7 +106,8 @@
                                   {:name    (attrs-name (first m))
                                    :number  (read-string (:number (:attrs (first m))))
                                    :chars   (characteristics  m)
-                                   :weapons (assoc-ids (weapons m))})))}))
+                                   :weapons (assoc-weapon-attacks
+                                             (assoc-ids (weapons m)))})))}))
 
 (defn edn [forces]
   (assoc-ids (for [f forces]
