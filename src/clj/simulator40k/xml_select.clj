@@ -16,6 +16,13 @@
    :selection
    (zx/attr= :type "upgrade")))
 
+(defn unit->weapons [unit]
+  (zx/xml->
+   unit
+   :profiles
+   :profile
+   (zx/attr= :typeName "Weapon")))
+
 (defn units [force]
   (zx/xml->
    force

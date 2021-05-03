@@ -2,7 +2,8 @@
   (:require
    [clojure.data.zip.xml :as zx]
    [simulator40k.xml-select :as xml-select]
-   [simulator40k.zip-reader :as zip-reader]))
+   [simulator40k.zip-reader :as zip-reader]
+   [simulator40k.parse :as parse]))
 
 ;; TODO: remove Game type from parsed
 
@@ -47,6 +48,20 @@
             weapons)
     ))
 
+(defn unit-weapons [unit]
+  (let [weapons (xml-select/unit->weapons unit)]
+    (reduce (fn [result w]
+              (conj result {:name (attrs-name (first w))
+                            :chars (->
+                                    (map #(attrs-and-content (first %))
+                                         (zx/xml-> w :characteristics :characteristic))
+                                    (keywordize-chars))
+                            ;; TODO: FIX THIS
+                            }))
+
+            []
+            weapons)))
+
 (defn characteristics [model]
   (let [chars (zx/xml-> model
                         :profiles
@@ -78,7 +93,9 @@
            (clojure.string/includes? (-> % :chars :type) "Grenade")
            (clojure.string/includes? (-> % :chars :type) "Heavy")
            (clojure.string/includes? (-> % :chars :type) "Pistol"))
-          (assoc % :weapon-attacks (clojure.string/replace (-> % :chars :type) #"Grenade|Heavy|Pistol" ""))
+          (assoc % :weapon-attacks (-> (clojure.string/replace (-> % :chars :type) #"Grenade|Heavy|Pistol" "")
+                                       (clojure.string/replace #"\s+" ""
+                                        )))
           :else
           (assoc % :weapon-attacks "1")
 
@@ -99,6 +116,7 @@
   (for [u (xml-select/units force)]
     {:name
      (attrs-name (first u))
+
      :unit   true
      :models (filter #(:m (:chars %))
                      (assoc-ids (for [m (concat (xml-select/unit->models-as-upgrades u)
@@ -107,7 +125,7 @@
                                    :number  (read-string (:number (:attrs (first m))))
                                    :chars   (characteristics  m)
                                    :weapons (assoc-weapon-attacks
-                                             (assoc-ids (weapons m)))})))}))
+                                             (assoc-ids (concat (unit-weapons u) (weapons m))))})))}))
 
 (defn edn [forces]
   (assoc-ids (for [f forces]

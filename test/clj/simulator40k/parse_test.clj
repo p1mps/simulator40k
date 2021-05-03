@@ -1,5 +1,14 @@
 (ns simulator40k.parse-test
   (:require [simulator40k.parse :as sut]
-            [clojure.test :as t]))
+            [simulator40k.data-test :as data-test]
+            [clojure.test :refer :all]))
 
-(def units (sut/parse "spacemarines.rosz"))
+
+(deftest weapon-attacks
+  (is (= "1" (:weapon-attacks data-test/lasgun)))
+  (is (= ["1" "D6" "1"] (map :weapon-attacks (:weapons data-test/intercessors)))))
+
+
+
+
+(run-tests)

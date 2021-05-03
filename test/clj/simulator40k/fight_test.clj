@@ -1,6 +1,7 @@
 (ns simulator40k.fight-test
   (:require [simulator40k.fight :as sut]
             [simulator40k.parse :as parse]
+            [simulator40k.data-test :as data-test]
             [clojure.test :refer :all]))
 
 (def d1
@@ -27,45 +28,6 @@
   {:times 2
    :dice 6
    :add 2})
-
-(def intercessors
-  (->
-   (parse/parse "rosters/spacemarines.rosz")
-   first
-   :units
-   first))
-
-
-(def infantry-squad
-  (->
-   (parse/parse "rosters/guard.rosz")
-   first
-   :units
-   first))
-
-(def guardsmen
-  (-> infantry-squad
-      :models
-      first
-      ))
-
-(def sergent
-  (-> infantry-squad
-      :models
-      second
-      ))
-
-
-
-(def intercessor
-  (-> intercessors
-      :models
-      first))
-
-(def lasgun
-  (-> guardsmen
-      :weapons
-      first))
 
 
 (deftest parse-dice
@@ -97,57 +59,59 @@
   (is (= 4 (sut/read-bs "4+"))))
 
 (deftest strength
-  (is (= 3 (sut/strength lasgun))))
+  (is (= 3 (sut/strength data-test/lasgun))))
 
 (deftest toughness
-  (is (= 3 (sut/toughness guardsmen))))
+  (is (= 3 (sut/toughness data-test/guardsmen))))
 
 (deftest success?
   (is (= true (sut/success? 6 5)))
   (is (= false (sut/success? 4 5))))
 
 (deftest to-wound
-  (is 5 (= (sut/to-wound lasgun intercessor))))
+  (is 5 (= (sut/to-wound lasgun data-test/intercessor-seargent))))
 
 (deftest wound?
   (with-redefs [sut/roll (fn [_] 5)]
-    (is true (sut/wound? lasgun intercessor))))
+    (is true (sut/wound? lasgun data-test/intercessor-seargent))))
 
 
 (deftest to-save
-  (is 5 (= (sut/to-save intercessor lasgun))))
+  (is 5 (= (sut/to-save data-test/intercessor-seargent lasgun))))
 
 (deftest save?
   (with-redefs [sut/roll (fn [_] 5)]
-    (is (= true (sut/save? lasgun intercessor))))
+    (is (= true (sut/save? lasgun data-test/intercessor-seargent))))
   (with-redefs [sut/roll (fn [_] 1)]
-    (is (= false (sut/save? lasgun intercessor)))))
+    (is (= false (sut/save? lasgun data-test/intercessor-seargent)))))
 
 (deftest hit?
   (with-redefs [sut/roll (fn [_] 5)]
-    (is (= true (sut/hit? sergent)))))
+    (is (= true (sut/hit? data-test/seargent)))))
 
 
 (deftest all-models-hit
   (with-redefs [sut/roll (fn [_] 5)]
-    (is (= (repeat 9 {:hit true}) (sut/all-models-hit guardsmen lasgun)))
+    (is (= (repeat 9 {:hit true}) (sut/all-models-hit data-test/guardsmen lasgun)))
     ))
 
 
 (deftest all-hits-wound
   (with-redefs [sut/roll (fn [_] 5)]
-    (is (= (repeat 9 {:hit true :wound true}) (sut/all-hits-wound (repeat 9 {:hit true}) lasgun intercessor)))
-    (is (= (conj (repeat 9 {:hit true :wound true}) {:hit false :wound false} ) (sut/all-hits-wound (conj (repeat 9 {:hit true}) {:hit false}) lasgun intercessor)))))
+    (is (= (repeat 9 {:hit true :wound true}) (sut/all-hits-wound (repeat 9 {:hit true}) lasgun data-test/intercessor-seargent)))
+    (is (= (conj (repeat 9 {:hit true :wound true}) {:hit false :wound false} ) (sut/all-hits-wound (conj (repeat 9 {:hit true}) {:hit false}) lasgun data-test/intercessor-seargent)))))
 
 
 (deftest all-wounds-save
   (with-redefs [sut/roll (fn [_] 5)]
-    (is (= (repeat 9 {:wound true :saved true}) (sut/all-wounds-save (repeat 9 {:wound true}) lasgun intercessor)))
-    (is (= (conj (repeat 9 {:wound true :saved true}) {:wound false :saved false}) (sut/all-wounds-save (conj (repeat 9 {:wound true}) {:wound false}) lasgun intercessor)))))
+    (is (= (repeat 9 {:wound true :saved true}) (sut/all-wounds-save (repeat 9 {:wound true}) lasgun data-test/intercessor-seargent)))
+    (is (= (conj (repeat 9 {:wound true :saved true}) {:wound false :saved false}) (sut/all-wounds-save (conj (repeat 9 {:wound true}) {:wound false}) lasgun data-test/intercessor-seargent)))))
 
 
 (deftest all-shot
-  (is (= 9 (count (sut/all-shoot guardsmen intercessor lasgun))))
+  (is (= 9 (count (sut/all-shoot data-test/guardsmen data-test/intercessor-seargent lasgun))))
+  (is (= (repeat 9 1) (map :damage (sut/all-shoot data-test/guardsmen data-test/intercessor-seargent lasgun))))
+  (is (= (repeat 9 1) (map :damage (sut/all-shoot data-test/guardsmen data-test/intercessor-seargent lasgun))))
 
   )
 

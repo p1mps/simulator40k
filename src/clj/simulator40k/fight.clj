@@ -102,7 +102,7 @@
     (>= r to-roll)))
 
 (defn damage [{{:keys [d]} :chars}]
-  (read-string d))
+  d)
 
 (defn all-models-hit [model weapon]
   (repeat (* (roll-dice (:weapon-attacks weapon)) (:number model))  {:hit (hit? model)}))
@@ -118,6 +118,9 @@
     (if (:wound w)
       (assoc w :saved (save? weapon target))
       (assoc w :saved false))))
+
+(defn all-damage [shoots weapon]
+  (map #(assoc % :damage (roll-dice (damage weapon)) ) shoots))
 
 (defn all-success [results]
   (map #(assoc % :success (and (:hit %) (not (:saved %)) (:wound %))) results))
@@ -146,6 +149,7 @@
   (-> (all-models-hit shooter-model weapon)
       (all-hits-wound weapon target)
       (all-wounds-save weapon target)
+      (all-damage weapon)
       (all-success))
   )
 
