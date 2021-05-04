@@ -1,4 +1,4 @@
 {:port 3000
  :paths ["src" "resources" "target"]
- :prod false
+ :prod true
  :main simulator40k.core}
