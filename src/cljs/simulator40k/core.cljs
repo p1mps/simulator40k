@@ -71,6 +71,9 @@
                                            _        (println (.-options e))
                                            _        (println (.-selectedIndex e))
                                            _        (println (.-attributes (aget (.-options e) (.-selectedIndex e))))
+                                           _        (println (.-value (.-item (.-attributes (aget (.-options e) (.-selectedIndex e))))))
+                                           _        (println (.-value (.-idforce (.-item (.-attributes (aget (.-options e) (.-selectedIndex e)))))))
+                                           _        (println (.-value (.-idforce (.-attributes (aget (.-options e) (.-selectedIndex e))))))
                                            force-id  (.-value (.-idforce (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                                            unit-id  (.-value (.-idunit (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                                            model-id (.-value (.-idmodel (.-attributes (aget (.-options e) (.-selectedIndex e)))))]
