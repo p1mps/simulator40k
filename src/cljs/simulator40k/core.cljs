@@ -19,25 +19,28 @@
    [clojure.string :as string])
   (:import goog.History))
 
-(defn simulation-stats []
-  [:div
-   [:p (str "Attacker " (-> @state/session :attacker-model :chars))]
-   [:p (str "Attacker Weapon selected" (-> @state/session :attacker-weapon-selected))]
-   [:p (str "Weapons " (map :name (-> @state/session :attacker-model :weapons)))]
-   [:p (str "Defender " (-> @state/session :defender-model :chars))]
-   [:p (str "Rules " (:rules @state/session))]
-   [:p [:b "Success "]
-    (str (-> @state/session :graph-data :percentage-success) "%")]
-   [:p [:b (str "Damage: ")]
-    (str (-> @state/session :graph-data :damage))]
-   [:p [:b (str "Min wounds: ")]
-    (-> @state/session :graph-data :min-damage)]
-   [:p [:b (str "Max wounds: ")]
-    (-> @state/session :graph-data :max-damage)]
-   [:p [:b (str "Average Wounds: ")]
-    (-> @state/session :graph-data :avg-damage)]
+(def DEBUG false)
 
-   ])
+(defn simulation-stats []
+  (when DEBUG
+    [:div
+     [:p (str "Attacker " (-> @state/session :attacker-model :chars))]
+     [:p (str "Attacker Weapon selected" (-> @state/session :attacker-weapon-selected))]
+     [:p (str "Weapons " (map :name (-> @state/session :attacker-model :weapons)))]
+     [:p (str "Defender " (-> @state/session :defender-model :chars))]
+     [:p (str "Rules " (:rules @state/session))]
+     [:p [:b "Success "]
+      (str (-> @state/session :graph-data :percentage-success) "%")]
+     [:p [:b (str "Damage: ")]
+      (str (-> @state/session :graph-data :damage))]
+     [:p [:b (str "Min wounds: ")]
+      (-> @state/session :graph-data :min-damage)]
+     [:p [:b (str "Max wounds: ")]
+      (-> @state/session :graph-data :max-damage)]
+     [:p [:b (str "Average Wounds: ")]
+      (-> @state/session :graph-data :avg-damage)]
+
+     ]))
 
 (defn graph []
   [:div

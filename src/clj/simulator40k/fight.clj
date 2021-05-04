@@ -105,7 +105,7 @@
 (defn exploding-hits [])
 
 (defn hit? [{{:keys [bs]} :chars} {:keys [hit-rules]}]
-  (println "type of re-rolls applied to hit" hit-rules)
+  ;;(println "type of re-rolls applied to hit" hit-rules)
   (let [r (map #((% re-rolls) 6 (read-bs bs))  hit-rules)]
     (map #(success? % (read-bs bs))) r))
 
