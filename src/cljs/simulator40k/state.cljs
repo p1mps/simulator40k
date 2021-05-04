@@ -5,10 +5,10 @@
 (def number-experiments "100")
 
 (def empty-state
-  {:hit-rules               []
-   :wound-rules             []
-   :ap-rules                []
-   :damage-rules            []
+  {:rules                   {:hit [:none]
+                             :wound [:none]
+                             :ap [:none]
+                             :damage [:none]}
    :runs                    number-experiments
    :restart                 false
    :attacker-roster         nil
