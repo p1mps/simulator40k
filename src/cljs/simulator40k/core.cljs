@@ -68,16 +68,8 @@
    [:div.select.is-dark.full-width
     [:select.full-width {:id        (str "select-" belong-to)
                          :on-change #(let [e        (.-target %)
-                                           _        (println (.-options e))
-                                           _        (println (.-selectedIndex e))
-                                           _        (println (.-attributes (aget (.-options e) (.-selectedIndex e))))
-                                           _        (println (js-keys (.-attributes (aget (.-options e) (.-selectedIndex e)))))
-                                           _        (println "force" (get (js->clj (.-attributes (aget (.-options e) (.-selectedIndex e)))) 0))
-                                           _        (println "unit" (get (js->clj (.-attributes (aget (.-options e) (.-selectedIndex e)))) 1))
-                                           _        (println "model" (get (js->clj (.-attributes (aget (.-options e) (.-selectedIndex e)))) 2))
-                                           _        (println (.-value (.-item (.-attributes (aget (.-options e) (.-selectedIndex e))))))
-                                           _        (println (.-value (.-idforce (.-item (.-attributes (aget (.-options e) (.-selectedIndex e)))))))
-                                           _        (println (.-value (.-idforce (.-attributes (aget (.-options e) (.-selectedIndex e))))))
+                                           _        (println (js->clj (.-attributes (aget (.-options e) (.-selectedIndex e)))))
+
                                            force-id  (.-value (.-idforce (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                                            unit-id  (.-value (.-idunit (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                                            model-id (.-value (.-idmodel (.-attributes (aget (.-options e) (.-selectedIndex e)))))]
