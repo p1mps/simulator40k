@@ -107,7 +107,7 @@
 (defn hit? [{{:keys [bs]} :chars} {:keys [hit-rules]}]
   ;;(println "type of re-rolls applied to hit" hit-rules)
   (let [r (map #((% re-rolls) 6 (read-bs bs))  hit-rules)]
-    (map #(success? % (read-bs bs))) r))
+    (some true? (map #(success? % (read-bs bs)) r))))
 
 ;; TODO check double strength weapon
 ;; check more than double
@@ -325,7 +325,7 @@
    (total-hits experiments true)
 
    :not-hits
-   (total-hits experiments false)
+   (total-hits experiments nil)
 
    :saves
    (total-saves experiments true)
