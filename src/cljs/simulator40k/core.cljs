@@ -71,7 +71,7 @@
                                            _        (println (.-options e))
                                            _        (println (.-selectedIndex e))
                                            _        (println (.-attributes (aget (.-options e) (.-selectedIndex e))))
-                                           _        (println (js->clj (.-attributes (aget (.-options e) (.-selectedIndex e))))) 0
+                                           _        (println (js->clj (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                                            _        (println "force" (get (js->clj (.-attributes (aget (.-options e) (.-selectedIndex e)))) 0))
                                            _        (println "unit" (get (js->clj (.-attributes (aget (.-options e) (.-selectedIndex e)))) 1))
                                            _        (println "model" (get (js->clj (.-attributes (aget (.-options e) (.-selectedIndex e)))) 2))
