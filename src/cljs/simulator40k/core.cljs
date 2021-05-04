@@ -68,6 +68,9 @@
    [:div.select.is-dark.full-width
     [:select.full-width {:id        (str "select-" belong-to)
                          :on-change #(let [e        (.-target %)
+                                           _        (println (.-options e))
+                                           _        (println (.-selectedIndex e))
+                                           _        (println (.-attributes (aget (.-options e) (.-selectedIndex e))))
                                            force-id  (.-value (.-idforce (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                                            unit-id  (.-value (.-idunit (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                                            model-id (.-value (.-idmodel (.-attributes (aget (.-options e) (.-selectedIndex e)))))]
