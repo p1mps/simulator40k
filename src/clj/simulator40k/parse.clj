@@ -73,7 +73,6 @@
      (keywordize-chars))))
 
 (defn assoc-ids [units]
-  (println units)
   (loop [u units
          id 0
          result []]

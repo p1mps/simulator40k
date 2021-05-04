@@ -68,8 +68,6 @@
    [:div.select.is-dark.full-width
     [:select.full-width {:id        (str "select-" belong-to)
                          :on-change #(let [e        (.-target %)
-                                           _        (println (js->clj (.-attributes (aget (.-options e) (.-selectedIndex e)))))
-
                                            force-id  (.-value (.-idforce (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                                            unit-id  (.-value (.-idunit (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                                            model-id (.-value (.-idmodel (.-attributes (aget (.-options e) (.-selectedIndex e)))))]
@@ -409,7 +407,6 @@
                       (let [e (.getElementById js/document "select-Runs")
                             id (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                             runs (first (filter #(= (:id %) id) state/runs-experiments))]
-                        (println runs)
                         (swap! state/session assoc :runs (:value runs)))) :runs)]]
 
         [:div.columns {:key "fight"}
