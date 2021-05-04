@@ -5,10 +5,10 @@
 (def number-experiments "100")
 
 (def empty-state
-  {:rules                   {:hit [:none]
-                             :wound [:none]
-                             :ap [:none]
-                             :damage [:none]}
+  {:rules                   {:hit-rules [:none]
+                             :wound-rules [:none]
+                             :ap-rules [:none]
+                             :damage-rules [:none]}
    :runs                    number-experiments
    :restart                 false
    :attacker-roster         nil
@@ -39,9 +39,7 @@
    {:id "1" :value "Re-roll 1s"}
    {:id "2" :value "Re-roll all"}
    {:id "3" :value "Exploding 6's"}
-   {:id "4" :value "Auto wound on 6's"}
-   {:id "5" :value "Auto hit"}
-   {:id "6" :value "Extra hit on 6's"}])
+   {:id "5" :value "Auto hit"}])
 
 (def wound-rules
   [{:id "0" :value "None"}
@@ -49,6 +47,7 @@
    {:id "2" :value "Re-roll all"}
    {:id "3" :value "Mortal wounds on 6's"}
    {:id "3" :value "+1 damage on 6's"}
+   {:id "4" :value "Auto wound on 6's"}
    {:id "4" :value "Ignore Fnp"}
    {:id "5" :value "Ignore wounds on 5's"}
    {:id "5" :value "Always wound on 2's"}])

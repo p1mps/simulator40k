@@ -1,6 +1,7 @@
 (ns simulator40k.home
   (:require
    [simulator40k.state :as state]
+   [clojure.browser.dom :as dom]
    [ajax.core :refer [GET POST]]))
 
 (defn title []
@@ -9,6 +10,9 @@
     [:div.title
      [:a {:href     "/#"
           :on-click (fn [_]
+                      (dom/remove-children "graph")
+                      (dom/remove-children "graph-damage")
+
                       (reset! state/session state/empty-state))}
       [:h6 "Simulator 40k"]]]]])
 

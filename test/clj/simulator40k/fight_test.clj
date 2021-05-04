@@ -1,6 +1,5 @@
 (ns simulator40k.fight-test
   (:require [simulator40k.fight :as sut]
-            [simulator40k.parse :as parse]
             [simulator40k.data-test :as data-test]
             [clojure.test :refer :all]))
 
@@ -126,3 +125,13 @@
 (deftest stats
   (sut/stats {:attacker data-test/guardsmen-with-lasgun :defender data-test/intercessor-seargent :n "1"}))
 (run-tests)
+
+
+(def rules
+  {:hit-rules [:none :re-roll-1s]})
+
+(:none sut/re-rolls)
+
+(deftest re-roll-hit
+
+  (sut/hit? {:chars {:bs "4+"}} rules))

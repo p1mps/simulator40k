@@ -35,7 +35,9 @@
    [:p [:b (str "Max wounds: ")]
     (-> @state/session :graph-data :max-damage)]
    [:p [:b (str "Average Wounds: ")]
-    (-> @state/session :graph-data :avg-damage)]])
+    (-> @state/session :graph-data :avg-damage)]
+
+   ])
 
 (defn graph []
   [:div
@@ -378,7 +380,7 @@
                             hit-rule-str (first (filter #(= (:id %) id) state/hit-rules))
                             hit-rule (get rule->key (:value (js->clj hit-rule-str)))]
 
-                        (swap! state/session update :rules #(update % :hit (fn [e] (assoc e (js/parseInt id-select) hit-rule ))))
+                        (swap! state/session update :rules #(update % :hit-rules (fn [e] (assoc e (js/parseInt id-select) hit-rule ))))
                         )) :hit)]
          [:div.column
           (dropdown "Wounds rules"
@@ -418,6 +420,7 @@
 
                           (POST "/api/fight" {:params  {:attacker attacker
                                                         :defender (:defender-model @state/session)
+                                                        :rules    (:rules @state/session)
                                                         :n        (:runs @state/session)}
                                               :handler handler-fight})))}
 

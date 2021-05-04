@@ -14,6 +14,8 @@
 ;; nil when just "1"
 
 
+
+
 (defn parse-dice [dice]
   (if (string/includes? dice "D")
     (let [[times dice] (string/split dice #"D")]
@@ -40,6 +42,33 @@
     (and (>= dice 1) (<= dice 6))
     (rand-nth (range 1 (+ 1 dice)))))
 
+(def re-rolls
+  {:none       (fn [dice _]
+                 (println "none reroll")
+                 (roll dice))
+   :re-roll-1s (fn [dice _]
+                 (println "reroll 1s")
+                 (let [previous-roll (roll dice)]
+                   (if (= previous-roll 1)
+                     (roll dice)
+                     previous-roll)))
+   :re-roll-all (fn [dice to-roll]
+                  (println "reroll all")
+                  (let [previous-roll (roll dice)]
+                   (if (< previous-roll to-roll)
+                     (roll dice)
+                     previous-roll))
+                  )})
+
+
+
+
+(comment
+  ((:re-roll-1s re-rolls) 1 6)
+
+  ((:re-roll-all re-rolls) 5 6 5))
+
+
 (defn roll-dice [dice]
   (if (string/includes? dice "D")
     (let [parsed-dice (parse-dice dice)
@@ -50,6 +79,16 @@
 
       (+ add roll))
     (read-string dice)))
+
+(def additional-attacks-rules
+  {:exploding-6s (fn []
+                   (let [first-roll (roll-dice 6)]
+                     (if (= first-roll 6)
+                       (list first-roll (roll-dice 6))
+                       (list first-roll))))
+   :auto-hit (fn [] true)
+   })
+
 
 (defn read-bs [bs]
   (read-string (string/replace bs "+" "")))
@@ -63,9 +102,12 @@
 (defn success? [rolled stat]
   (>= rolled stat))
 
-(defn hit? [{{:keys [bs]} :chars}]
-  (let [r (roll 6)]
-    (success? r (read-bs bs))))
+(defn exploding-hits [])
+
+(defn hit? [{{:keys [bs]} :chars} {:keys [hit-rules]}]
+  (println "type of re-rolls applied to hit" hit-rules)
+  (let [r (map #((% re-rolls) 6 (read-bs bs))  hit-rules)]
+    (map #(success? % (read-bs bs))) r))
 
 ;; TODO check double strength weapon
 ;; check more than double
@@ -104,8 +146,8 @@
 (defn damage [{{:keys [d]} :chars}]
   d)
 
-(defn all-models-hit [model weapon]
-  (repeat (* (roll-dice (:weapon-attacks weapon)) (read-string (:number model)))  {:hit (hit? model)}))
+(defn all-models-hit [model weapon rules]
+  (repeat (* (roll-dice (:weapon-attacks weapon)) (read-string (:number model)))  {:hit (hit? model rules)}))
 
 (defn all-hits-wound [hits weapon target-unit]
   (for [h hits]
@@ -149,8 +191,8 @@
                           0)}]
     result))
 
-(defn all-shoot [shooter-model target weapon]
-  (-> (all-models-hit shooter-model weapon)
+(defn all-shoot [shooter-model target weapon rules]
+  (-> (all-models-hit shooter-model weapon rules)
       (all-hits-wound weapon target)
       (all-wounds-save weapon target)
       (all-success)
@@ -179,9 +221,9 @@
 ;; number of attacks still not fixed
 
 
-(defn monte-carlo-shoot [attacker defender n]
+(defn monte-carlo-shoot [attacker defender n rules]
   (repeatedly n
-              #(all-shoot attacker defender (model-weapon attacker))))
+              #(all-shoot attacker defender (model-weapon attacker) rules)))
 
 (defn average
   [numbers]
@@ -297,8 +339,8 @@
 ;; 100*number/total
 
 
-(defn stats [{:keys [attacker defender n]}]
-  (-> (monte-carlo-shoot attacker defender (read-string n))
+(defn stats [{:keys [attacker defender n rules]}]
+  (-> (monte-carlo-shoot attacker defender (read-string n) rules)
       (compute-stats)))
 
 (comment
