@@ -3,7 +3,7 @@
    [clojure.data.zip.xml :as zx]
    [simulator40k.xml-select :as xml-select]
    [simulator40k.zip-reader :as zip-reader]
-   [simulator40k.parse :as parse]))
+   ))
 
 ;; TODO: remove Game type from parsed
 
@@ -73,9 +73,11 @@
      (keywordize-chars))))
 
 (defn assoc-ids [units]
+  (println units)
   (loop [u units
          id 0
          result []]
+
     (if (seq u)
       (recur (rest u)
              (inc id)
@@ -107,10 +109,10 @@
      :model true
      :models
      (assoc-ids (list {:name    (attrs-name (first m))
-                       :number  (read-string (:number (:attrs (first m))))
+                       :number  (:number (:attrs (first m)))
                        :chars   (characteristics  m)
                        :weapons (assoc-weapon-attacks
-                                 (assoc-ids (weapons m)))}))}))
+                                 (assoc-ids (concat (unit-weapons m) (weapons m))))}))}))
 
 (defn get-units [force]
   (for [u (xml-select/units force)]
@@ -122,7 +124,7 @@
                      (assoc-ids (for [m (concat (xml-select/unit->models-as-upgrades u)
                                                 (xml-select/unit->models u))]
                                   {:name    (attrs-name (first m))
-                                   :number  (read-string (:number (:attrs (first m))))
+                                   :number  (:number (:attrs (first m)))
                                    :chars   (characteristics  m)
                                    :weapons (assoc-weapon-attacks
                                              (assoc-ids (concat (unit-weapons u) (weapons m))))})))}))
@@ -149,7 +151,7 @@
                                              (for [m (:models u)]
                                                {:unit u
                                                 :model
-                                                (if (> (:number m) 1)
+                                                (if (> (read-string (:number m)) 1)
                                                   (assoc (dissoc m :id) :name (str (:name m) " x " (:number m)))
                                                   (dissoc m :id))})))))]
     (for [f forces]
