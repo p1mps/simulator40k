@@ -44,16 +44,16 @@
 
 (def re-rolls
   {:none       (fn [dice _]
-                 (println "none reroll")
+                 ;;(println "none reroll")
                  (roll dice))
    :re-roll-1s (fn [dice _]
-                 (println "reroll 1s")
+                 ;;(println "reroll 1s")
                  (let [previous-roll (roll dice)]
                    (if (= previous-roll 1)
                      (roll dice)
                      previous-roll)))
    :re-roll-all (fn [dice to-roll]
-                  (println "reroll all")
+                  ;;(println "reroll all")
                   (let [previous-roll (roll dice)]
                    (if (< previous-roll to-roll)
                      (roll dice)
