@@ -6,9 +6,7 @@
 
 (deftest weapon-attacks
   (is (= "1" (:weapon-attacks data-test/lasgun)))
-  (is (= ["1" "D6" "1"] (map :weapon-attacks (:weapons data-test/intercessors)))))
-
-
+  (is (= ["1" "D6" "1"] (map :weapon-attacks (:weapons data-test/intercessor-seargent)))))
 
 
 (run-tests)

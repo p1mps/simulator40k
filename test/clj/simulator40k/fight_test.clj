@@ -69,21 +69,21 @@
   (is (= false (sut/success? 4 5))))
 
 (deftest to-wound
-  (is 5 (= (sut/to-wound lasgun data-test/intercessor-seargent))))
+  (is 5 (= (sut/to-wound data-test/lasgun data-test/intercessor-seargent))))
 
 (deftest wound?
   (with-redefs [sut/roll (fn [_] 5)]
-    (is true (sut/wound? lasgun data-test/intercessor-seargent))))
+    (is true (sut/wound? data-test/lasgun data-test/intercessor-seargent))))
 
 
 (deftest to-save
-  (is 5 (= (sut/to-save data-test/intercessor-seargent lasgun))))
+  (is 5 (= (sut/to-save data-test/intercessor-seargent data-test/lasgun))))
 
 (deftest save?
   (with-redefs [sut/roll (fn [_] 5)]
-    (is (= true (sut/save? lasgun data-test/intercessor-seargent))))
+    (is (= true (sut/save? data-test/lasgun data-test/intercessor-seargent))))
   (with-redefs [sut/roll (fn [_] 1)]
-    (is (= false (sut/save? lasgun data-test/intercessor-seargent)))))
+    (is (= false (sut/save? data-test/lasgun data-test/intercessor-seargent)))))
 
 (deftest hit?
   (with-redefs [sut/roll (fn [_] 5)]
@@ -92,28 +92,37 @@
 
 (deftest all-models-hit
   (with-redefs [sut/roll (fn [_] 5)]
-    (is (= (repeat 9 {:hit true}) (sut/all-models-hit data-test/guardsmen lasgun)))
+    (is (= (repeat 9 {:hit true}) (sut/all-models-hit data-test/guardsmen data-test/lasgun)))
     ))
 
 
 (deftest all-hits-wound
   (with-redefs [sut/roll (fn [_] 5)]
-    (is (= (repeat 9 {:hit true :wound true}) (sut/all-hits-wound (repeat 9 {:hit true}) lasgun data-test/intercessor-seargent)))
-    (is (= (conj (repeat 9 {:hit true :wound true}) {:hit false :wound false} ) (sut/all-hits-wound (conj (repeat 9 {:hit true}) {:hit false}) lasgun data-test/intercessor-seargent)))))
+    (is (= (repeat 9 {:hit true :wound true}) (sut/all-hits-wound (repeat 9 {:hit true}) data-test/lasgun data-test/intercessor-seargent)))
+    (is (= (conj (repeat 9 {:hit true :wound true}) {:hit false :wound false} ) (sut/all-hits-wound (conj (repeat 9 {:hit true}) {:hit false}) data-test/lasgun data-test/intercessor-seargent)))))
 
 
 (deftest all-wounds-save
   (with-redefs [sut/roll (fn [_] 5)]
-    (is (= (repeat 9 {:wound true :saved true}) (sut/all-wounds-save (repeat 9 {:wound true}) lasgun data-test/intercessor-seargent)))
-    (is (= (conj (repeat 9 {:wound true :saved true}) {:wound false :saved false}) (sut/all-wounds-save (conj (repeat 9 {:wound true}) {:wound false}) lasgun data-test/intercessor-seargent)))))
+    (is (= (repeat 9 {:wound true :saved true}) (sut/all-wounds-save (repeat 9 {:wound true}) data-test/lasgun data-test/intercessor-seargent)))
+    (is (= (conj (repeat 9 {:wound true :saved true}) {:wound false :saved false}) (sut/all-wounds-save (conj (repeat 9 {:wound true}) {:wound false}) data-test/lasgun data-test/intercessor-seargent)))))
+
+
 
 
 (deftest all-shot
-  (is (= 9 (count (sut/all-shoot data-test/guardsmen data-test/intercessor-seargent lasgun))))
-  (is (= (repeat 9 1) (map :damage (sut/all-shoot data-test/guardsmen data-test/intercessor-seargent lasgun))))
-  (is (= (repeat 9 1) (map :damage (sut/all-shoot data-test/guardsmen data-test/intercessor-seargent lasgun))))
-
+  (is (= 9 (count (sut/all-shoot data-test/guardsmen data-test/intercessor-seargent data-test/lasgun))))
+  (is (= (repeat 9 1) (map :damage (sut/all-shoot data-test/guardsmen data-test/intercessor-seargent data-test/lasgun))))
+  (is (= (repeat 9 1) (map :damage (sut/all-shoot data-test/guardsmen data-test/intercessor-seargent data-test/lasgun))))
+  (testing "all-shot with frag grenades"
+    (count (map :damage (sut/all-shoot data-test/guardsmen data-test/intercessor-seargent data-test/frag-grenades))))
   )
 
 
+(deftest monte-carlo
+  (count (first (sut/monte-carlo-shoot data-test/guardsmen-with-lasgun data-test/intercessor-seargent 1))))
+
+
+(deftest stats
+  (sut/stats {:attacker data-test/guardsmen-with-lasgun :defender data-test/intercessor-seargent :n "1"}))
 (run-tests)
