@@ -22,12 +22,14 @@
 (defn simulation-stats []
   [:div
    [:p (str "Attacker " (-> @state/session :attacker-model :chars))]
-   [:p (str "Attacker Weapon selected" (-> @state/session :attacker-weapon-selected :chars))]
+   [:p (str "Attacker Weapon selected" (-> @state/session :attacker-weapon-selected))]
    [:p (str "Weapons " (map :name (-> @state/session :attacker-model :weapons)))]
    [:p (str "Defender " (-> @state/session :defender-model :chars))]
-   [:p (str "Rules " (:hit-rules @state/session))]
+   [:p (str "Rules " (:rules @state/session))]
    [:p [:b "Success "]
     (str (-> @state/session :graph-data :percentage-success) "%")]
+   [:p [:b (str "Damage: ")]
+    (str (-> @state/session :graph-data :damage))]
    [:p [:b (str "Min wounds: ")]
     (-> @state/session :graph-data :min-damage)]
    [:p [:b (str "Max wounds: ")]
@@ -38,6 +40,7 @@
 (defn graph []
   [:div
    [:div {:id "graph"}]
+   [:div {:id "graph-damage"}]
    (simulation-stats)])
 
 ;;SECOND PAGE
@@ -90,14 +93,17 @@
      (into [:div]
            (for [i (range 0 (get @num-rules key-rule))]
 
-             [:div.columns
-              [:div.field
+             [:div.columns {:key (str title i)}
+              [:div.field {:key i}
                [:div.select.is-dark.full-width
-                [:select.full-width {:id        (str "select-" title)
+                [:select.full-width {:key       (str title i)
+                                     :id-select i
+                                     :id        (str "select-" title)
                                      :on-change on-change-f}
                  (for [d data]
                    [:option
-                    {:key (str d (:id d))
+                    {:key (str d title (:id d))
+                     :id-select i
                      :id  (:id d)} (:value d)])]]]
 
               (when-not (= key-rule :runs)
@@ -164,6 +170,15 @@
        :value (-> @state/session :attacker-model :chars :bs)
        :on-change    (fn [e]
                        (swap! state/session assoc-in [:attacker-model :chars :bs] (-> e .-target .-value)))}]]
+    [:div.field.is-horizontal {:key "field"}
+     [:div.field-label.is-normal
+      [:label.label "Models"]]
+     [:input.input
+      {:type         "text"
+       :value (-> @state/session :attacker-model :number)
+       :on-change    (fn [e]
+                       (swap! state/session assoc-in [:attacker-model :number
+                                                      ] (-> e .-target .-value)))}]]
     (-> @state/session :attacker-model :chars :description)]])
 
 (defn index-selected-weapon []
@@ -193,7 +208,7 @@
      [:input.input
       {:type      "text" :value (weapon-attacks)
        :on-change (fn [e]
-                    (swap! state/session assoc-in [:attacker-weapon-selected :chars :type] (-> e .-target .-value)))}]]
+                    (swap! state/session assoc-in [:attacker-weapon-selected :weapon-attacks] (-> e .-target .-value)))}]]
 
     [:div.field.is-horizontal
      [:div.field-label.is-normal
@@ -210,6 +225,7 @@
       {:type      "text" :value (-> @state/session :attacker-weapon-selected :chars :d)
        :on-change (fn [e]
                     (swap! state/session assoc-in [:attacker-weapon-selected :chars :d] (-> e .-target .-value)))}]]
+
 
     (-> @state/session :attacker-weapon-selected :chars :abilities)]])
 
@@ -255,6 +271,13 @@
   (set-model! "0" "0" "0" :defender-model :defender-unit-models)
   (swap! state/session assoc :attacker-weapon-selected (first (:weapons (:attacker-model @state/session)))))
 
+
+(def rule->key
+  {"None" :none
+   "Re-roll 1s" :re-roll-1s
+   "Re-roll all" :re-roll-all})
+
+
 (defn read-response [response]
   (-> (.parse js/JSON response) (js->clj :keywordize-keys true)))
 
@@ -272,7 +295,6 @@
                             (-> @state/session :graph-data :not-wounds)
                             (-> @state/session :graph-data :saves)
                             (-> @state/session :graph-data :not-saves)]
-
                         :marker
                         {:color ["rgba(204,204,204,1)"
                                  "rgba(204,204,204,1)"
@@ -283,7 +305,26 @@
                                  "rgba(204,204,204,1)"
                                  "rgba(204,204,204,1)"]}
 
-                        :type "bar"}])))
+                        :type "bar"}]) (clj->js {:responsive true}))
+
+  (js/Plotly.newPlot (.getElementById js/document "graph-damage")
+                     (clj->js
+                      [{:x (-> @state/session :graph-data :damage)
+                        :name "damage"
+                        :width "100px"
+                        :heigth "100px"
+                        :orientation "h"
+                        :marker
+                        {:color ["rgba(204,204,204,1)"
+                                 ]}
+
+                        :type "box"}]
+
+                      ) (clj->js
+                         {:responsive true
+                          :width 500
+                          :height 200}
+                         )))
 
 (defn home-page []
   [:section.section>div.container>div.content
@@ -329,16 +370,16 @@
          [:div.column
           (dropdown "Hit rules"
                     state/hit-rules
-                    (fn [element]
-                      (.preventDefault element)
-                      (let [e (.getElementById js/document "select-Hit rules")
+                    (fn [event]
+                      (.preventDefault event)
+                      (let [e (.-target event)
+                            id-select (.-value (.-idselect (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                             id (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
-                            hit-rule (first (filter #(= (:id %) id) state/hit-rules))]
-                        (println (:value hit-rule))
-                        (println "hitr ")
-                        (println (:hit-rules @state/session))
-                        (swap! state/session assoc :hit-rules (:value hit-rule))
-                        (println (:hit-rules @state/session)))) :hit)]
+                            hit-rule-str (first (filter #(= (:id %) id) state/hit-rules))
+                            hit-rule (get rule->key (:value (js->clj hit-rule-str)))]
+
+                        (swap! state/session update :rules #(update % :hit (fn [e] (assoc e (js/parseInt id-select) hit-rule ))))
+                        )) :hit)]
          [:div.column
           (dropdown "Wounds rules"
                     state/wound-rules
