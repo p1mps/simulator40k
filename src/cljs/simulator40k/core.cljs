@@ -67,7 +67,7 @@
   [:div.field
    [:div.select.is-dark.full-width
     [:select.full-width {:id        (str "select-" belong-to)
-                         :on-change #(let [e        (js/document.getElementById (str "select-" belong-to))
+                         :on-change #(let [e        (.-target %)
                                            force-id  (.-value (.-idforce (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                                            unit-id  (.-value (.-idunit (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                                            model-id (.-value (.-idmodel (.-attributes (aget (.-options e) (.-selectedIndex e)))))]
