@@ -105,7 +105,7 @@
   d)
 
 (defn all-models-hit [model weapon]
-  (repeat (* (roll-dice (:weapon-attacks weapon)) (:number model))  {:hit (hit? model)}))
+  (repeat (* (roll-dice (:weapon-attacks weapon)) (read-string (:number model)))  {:hit (hit? model)}))
 
 (defn all-hits-wound [hits weapon target-unit]
   (for [h hits]
@@ -120,7 +120,11 @@
       (assoc w :saved false))))
 
 (defn all-damage [shoots weapon]
-  (map #(assoc % :damage (roll-dice (damage weapon)) ) shoots))
+  (map #(assoc % :damage
+
+               (if (:success %)
+                 (roll-dice (damage weapon))
+                 0) ) shoots))
 
 (defn all-success [results]
   (map #(assoc % :success (and (:hit %) (not (:saved %)) (:wound %))) results))
@@ -149,8 +153,8 @@
   (-> (all-models-hit shooter-model weapon)
       (all-hits-wound weapon target)
       (all-wounds-save weapon target)
-      (all-damage weapon)
-      (all-success))
+      (all-success)
+      (all-damage weapon))
   )
 
 (defn model-weapon [model]
@@ -177,7 +181,7 @@
 
 (defn monte-carlo-shoot [attacker defender n]
   (repeatedly n
-              #(calculate-wounds attacker defender (model-weapon attacker))))
+              #(all-shoot attacker defender (model-weapon attacker))))
 
 (defn average
   [numbers]
@@ -216,7 +220,7 @@
                  (reduce (fn [result experiment]
                            (conj
                             result {:total-wounds
-                                    (count (filter #(= (:wounded %) wounded)
+                                    (count (filter #(= (:wound %) wounded)
                                                    experiment))}))
 
                          []
@@ -246,6 +250,7 @@
 
 (defn compute-stats [experiments]
   {:experiments experiments
+   :damage (total-damage experiments)
    :avg-damage
    (/ (float (reduce + (total-damage experiments)))
       (count experiments))
