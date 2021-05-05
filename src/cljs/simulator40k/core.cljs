@@ -45,6 +45,7 @@
 (defn graph []
   [:div
    [:div {:id "graph"}]
+   (when (:graph-data @state/session) [:p "Damage"])
    [:div {:id "graph-damage"}]
    (simulation-stats)])
 
@@ -315,21 +316,23 @@
   (js/Plotly.newPlot (.getElementById js/document "graph-damage")
                      (clj->js
                       [{:x (-> @state/session :graph-data :damage)
+                        :y (-> @state/session :graph-data :damage)
                         :name "damage"
-                        :width "100px"
-                        :heigth "100px"
-                        :orientation "h"
-                        :marker
-                        {:color ["rgba(204,204,204,1)"
-                                 ]}
+                        ;;:width "100px"
+                        ;;:heigth "100px"
+                        ;;:orientation "h"
 
-                        :type "box"}]
+                        :type "bar"}]
+                      (clj->js {
+                                :xaxis {:type "category"
 
-                      ) (clj->js
-                         {:responsive true
-                          :width 500
-                          :height 200}
-                         )))
+                                        :title "Damage"}
+                                :yaxis {:title "Value"}
+
+
+                                })
+
+                      ) ))
 
 (defn home-page []
   [:section.section>div.container>div.content
