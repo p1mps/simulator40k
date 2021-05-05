@@ -33,12 +33,6 @@
       (str (-> @state/session :graph-data :percentage-success) "%")]
      [:p [:b (str "Damage: ")]
       (str (-> @state/session :graph-data :damage))]
-     [:p [:b (str "Min wounds: ")]
-      (-> @state/session :graph-data :min-damage)]
-     [:p [:b (str "Max wounds: ")]
-      (-> @state/session :graph-data :max-damage)]
-     [:p [:b (str "Average Wounds: ")]
-      (-> @state/session :graph-data :avg-damage)]
 
      ]))
 
@@ -47,6 +41,13 @@
    [:div {:id "graph"}]
    (when (:graph-data @state/session) [:p "Damage"])
    [:div {:id "graph-damage"}]
+   (when (:graph-data @state/session)
+     [:p [:b (str "Min wounds: ")]
+      (-> @state/session :graph-data :min-damage)]
+     [:p [:b (str "Max wounds: ")]
+      (-> @state/session :graph-data :max-damage)]
+     [:p [:b (str "Average Wounds: ")]
+      (-> @state/session :graph-data :avg-damage)])
    (simulation-stats)])
 
 ;;SECOND PAGE
