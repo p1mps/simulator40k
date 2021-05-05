@@ -19,30 +19,30 @@
    [clojure.string :as string])
   (:import goog.History))
 
-(def DEBUG false)
+(def DEBUG true)
 
 (defn simulation-stats []
-  (when DEBUG
-    [:div
+  [:div
+   (when DEBUG
      [:p (str "Attacker " (-> @state/session :attacker-model :chars))]
      [:p (str "Attacker Weapon selected" (-> @state/session :attacker-weapon-selected))]
      [:p (str "Weapons " (map :name (-> @state/session :attacker-model :weapons)))]
      [:p (str "Defender " (-> @state/session :defender-model :chars))]
      [:p (str "Rules " (:rules @state/session))]
-     [:p [:b "Success "]
-      (str (-> @state/session :graph-data :percentage-success) "%")]
      [:p [:b (str "Damage: ")]
-      (str (-> @state/session :graph-data :damage))]
-
-     ]))
+       (str (-> @state/session :graph-data :damage-stats))])
+   ])
 
 (defn graph []
   [:div
    [:div {:id "graph"}]
    (when (:graph-data @state/session) [:p "Damage"])
    [:div {:id "graph-damage"}]
+   [:div {:id "graph-damage-whisker"}]
    (when (:graph-data @state/session)
      [:div
+      [:p [:b "Success "]
+       (str (-> @state/session :graph-data :percentage-success) "%")]
       [:p [:b (str "Min wounds: ")]
        (-> @state/session :graph-data :min-damage)]
       [:p [:b (str "Max wounds: ")]
@@ -317,8 +317,8 @@
 
   (js/Plotly.newPlot (.getElementById js/document "graph-damage")
                      (clj->js
-                      [{:x (-> @state/session :graph-data :damage)
-                        :y (-> @state/session :graph-data :damage)
+                      [{:x (map first (frequencies (-> @state/session :graph-data :damage)))
+                        :y (map second (frequencies (-> @state/session :graph-data :damage)))
                         :name "damage"
                         ;;:width "100px"
                         ;;:heigth "100px"
