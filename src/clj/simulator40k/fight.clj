@@ -290,12 +290,24 @@
                          []
                          experiments))))
 
+;; y = (x**lmbda - 1) / lmbda,  for lmbda != 0
+;;     log(x),                  for lmbda = 0
+
+(defn normalize [values]
+  (map #(Math/sqrt %
+
+          )
+
+
+       values ))
+
+
 (defn compute-stats [experiments]
   {:experiments experiments
-   :damage (total-damage experiments)
+   :damage (total-damage (filter #(= (:success (first %)) true) experiments))
    :avg-damage
-   (/ (float (reduce + (total-damage experiments)))
-      (count experiments))
+   (/ (float (reduce + (total-damage (filter #(= (:success (first %)) true) experiments))))
+      (count (filter #(= (:success (first %)) true) experiments)))
 
    :success
    (total-success experiments true)
