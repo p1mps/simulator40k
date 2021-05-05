@@ -42,12 +42,13 @@
    (when (:graph-data @state/session) [:p "Damage"])
    [:div {:id "graph-damage"}]
    (when (:graph-data @state/session)
-     [:p [:b (str "Min wounds: ")]
-      (-> @state/session :graph-data :min-damage)]
-     [:p [:b (str "Max wounds: ")]
-      (-> @state/session :graph-data :max-damage)]
-     [:p [:b (str "Average Wounds: ")]
-      (-> @state/session :graph-data :avg-damage)])
+     [:div
+      [:p [:b (str "Min wounds: ")]
+       (-> @state/session :graph-data :min-damage)]
+      [:p [:b (str "Max wounds: ")]
+       (-> @state/session :graph-data :max-damage)]
+      [:p [:b (str "Average Wounds: ")]
+       (-> @state/session :graph-data :avg-damage)]])
    (simulation-stats)])
 
 ;;SECOND PAGE
