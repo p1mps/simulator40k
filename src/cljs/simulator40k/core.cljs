@@ -318,6 +318,7 @@
                         :type "bar"}]) (clj->js {:responsive true}))
 
   ;; TODO: fill the gaps with 0 0 on damage
+  ;; damage should take into consideration the wounds of the enemy
   (js/Plotly.newPlot (.getElementById js/document "graph-damage")
                      (clj->js
                       [{:x (map first (frequencies (-> @state/session :graph-data :damage)))

@@ -1,6 +1,8 @@
 (ns simulator40k.fight
   (:require
-   [clojure.string :as string]))
+   [clojure.string :as string]
+   [simulator40k.stats :as stats]
+   ))
 
 (def number-experiments 100)
 
