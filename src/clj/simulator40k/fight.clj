@@ -304,6 +304,7 @@
 
 (defn compute-stats [experiments]
   {:experiments experiments
+   :damage-stats (stats/stats-map (total-damage (filter #(= (:success (first %)) true) experiments)))
    :damage (total-damage (filter #(= (:success (first %)) true) experiments))
    :avg-damage
    (/ (float (reduce + (total-damage (filter #(= (:success (first %)) true) experiments))))

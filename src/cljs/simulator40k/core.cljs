@@ -30,7 +30,9 @@
      [:p (str "Defender " (-> @state/session :defender-model :chars))]
      [:p (str "Rules " (:rules @state/session))]
      [:p [:b (str "Damage: ")]
-       (str (-> @state/session :graph-data :damage-stats))])
+      (str (-> @state/session :graph-data :damage-stats) " "
+           (sort (-> @state/session :graph-data :damage))
+           " " (sort (frequencies (sort (-> @state/session :graph-data :damage)))))])
    ])
 
 (defn graph []
@@ -315,6 +317,7 @@
 
                         :type "bar"}]) (clj->js {:responsive true}))
 
+  ;; TODO: fill the gaps with 0 0 on damage
   (js/Plotly.newPlot (.getElementById js/document "graph-damage")
                      (clj->js
                       [{:x (map first (frequencies (-> @state/session :graph-data :damage)))
