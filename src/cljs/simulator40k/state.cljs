@@ -5,12 +5,15 @@
 (def number-experiments "100")
 
 (def empty-state
-  {:rules                   {:hit-rules [:none]
+  {:fight-error             false
+   :show-loader             false
+   :rules                   {:hit-rules [:none]
                              :wound-rules [:none]
                              :ap-rules [:none]
                              :damage-rules [:none]}
    :runs                    number-experiments
    :restart                 false
+   :error-upload            false
    :attacker-roster         nil
    :defender-roster         nil
    :number-experiments      number-experiments
@@ -49,8 +52,9 @@
    {:id "4" :value "+1 damage on 6's"}
    {:id "5" :value "Auto wound on 6's"}
    {:id "6" :value "Ignore Fnp"}
-   {:id "7" :value "Ignore wounds on 5's"}
-   {:id "8" :value "Always wound on 2's"}])
+   {:id "7" :value "FNP 5+"}
+   {:id "8" :value "FNP 6+"}
+   {:id "9" :value "Always wound on 2's"}])
 
 (def damage-rules
   [{:id "0" :value "None"}

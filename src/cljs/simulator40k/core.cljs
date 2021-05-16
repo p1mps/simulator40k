@@ -3,6 +3,7 @@
 ;; on change values form
 (ns simulator40k.core
   (:require
+   [clojure.browser.dom :as dom]
    [goog.string :as gstring]
    [goog.string.format]
    [ajax.core :refer [GET POST]]
@@ -22,18 +23,16 @@
 (def DEBUG true)
 
 (defn simulation-stats []
-  [:div
-   (when DEBUG
-     [:p (str "Attacker " (-> @state/session :attacker-model :chars))]
+  (when DEBUG
+
+    [:div [:p (str "Attacker " (-> @state/session :attacker-model :chars))]
      [:p (str "Attacker Weapon selected" (-> @state/session :attacker-weapon-selected))]
      [:p (str "Weapons " (map :name (-> @state/session :attacker-model :weapons)))]
      [:p (str "Defender " (-> @state/session :defender-model :chars))]
      [:p (str "Rules " (:rules @state/session))]
-     [:p [:b (str "Damage: ")]
-      (str (-> @state/session :graph-data :damage-stats) " "
-           (sort (-> @state/session :graph-data :damage))
-           " " (sort (frequencies (sort (-> @state/session :graph-data :damage)))))])
-   ])
+     [:p [:b (str "Damage: " ) ]
+      (-> @state/session :graph-data :damage-stats)]])
+  )
 
 (defn graph []
   [:div
@@ -50,8 +49,9 @@
       [:p [:b (str "Max wounds: ")]
        (-> @state/session :graph-data :max-damage)]
       [:p [:b (str "Average Wounds: ")]
-       (-> @state/session :graph-data :avg-damage)]])
-   (simulation-stats)])
+       (-> @state/session :graph-data :avg-damage)]]
+     (simulation-stats))
+   ])
 
 ;;SECOND PAGE
 
@@ -285,13 +285,26 @@
 (def rule->key
   {"None" :none
    "Re-roll 1s" :re-roll-1s
-   "Re-roll all" :re-roll-all})
+   "Re-roll all" :re-roll-all
+   "FNP 5+" :fnp-5+
+   "FNP 6+" :fnp-6+})
 
 
 (defn read-response [response]
   (-> (.parse js/JSON response) (js->clj :keywordize-keys true)))
 
+
+(def show-loader (r/atom false))
+
+(def fight-error (r/atom false))
+
+(defn handler-error-fight [response]
+  (swap! state/session assoc :fight-error true)
+  )
+
 (defn handler-fight [response]
+
+  (swap! state/session assoc :fight-error false)
   (swap! state/session assoc :graph-data (:fight (read-response response)))
 
   (js/Plotly.newPlot (.getElementById js/document "graph")
@@ -321,24 +334,31 @@
   ;; damage should take into consideration the wounds of the enemy
   (js/Plotly.newPlot (.getElementById js/document "graph-damage")
                      (clj->js
-                      [{:x (map first (frequencies (-> @state/session :graph-data :damage)))
-                        :y (map second (frequencies (-> @state/session :graph-data :damage)))
+                      [{:x (map first (-> @state/session :graph-data :damage))
+                        :y (map second (-> @state/session :graph-data :damage))
                         :name "damage"
                         ;;:width "100px"
                         ;;:heigth "100px"
                         ;;:orientation "h"
-
-                        :type "bar"}]
-                      (clj->js {
-                                :xaxis {:type "category"
-
-                                        :title "Damage"}
-                                :yaxis {:title "Value"}
+                         :mode "markers"
+                        :type "bar"}])
+                     (clj->js {
+                               :xaxis {
 
 
-                                })
 
-                      ) ))
+                                       :title "Damage"}
+                               :yaxis {:title      "Value"
+                                       :tickformat "d"
+                                       }
+
+
+                               })
+
+                     )
+  (swap! state/session assoc :fight-error false)
+  (swap! state/session assoc :show-loader false)
+  )
 
 (defn home-page []
   [:section.section>div.container>div.content
@@ -397,7 +417,17 @@
          [:div.column
           (dropdown "Wounds rules"
                     state/wound-rules
-                    (fn [e] ()) :wound)]
+                    (fn [event]
+                      (.preventDefault event)
+                      (let [e (.-target event)
+                            id-select (.-value (.-idselect (.-attributes (aget (.-options e) (.-selectedIndex e)))))
+                            id (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
+                            wound-rule-str (first (filter #(= (:id %) id) state/wound-rules))
+                            wound-rule (get rule->key (:value (js->clj wound-rule-str)))]
+                        (println wound-rule-str)
+                        (swap! state/session update :rules #(update % :wound-rules (fn [e] (assoc e (js/parseInt id-select) wound-rule ))))
+                        ))
+                    :wound)]
 
          [:div.column
           (dropdown "Damage rules"
@@ -424,6 +454,10 @@
            {:name     "fight"
             :on-click (fn [e]
                         (.preventDefault e)
+                        (dom/remove-children "graph")
+                        (dom/remove-children "graph-damage")
+
+                        (swap! state/session assoc :show-loader true)
                         (let [attacker (:attacker-model @state/session)
                               attacker (assoc
                                         attacker
@@ -433,14 +467,16 @@
                                                         :defender (:defender-model @state/session)
                                                         :rules    (:rules @state/session)
                                                         :n        (:runs @state/session)}
-                                              :handler handler-fight})))}
+                                              :handler handler-fight
+                                              :error-handler handler-error-fight})))}
 
            "Fight"]]]]))
 
 
 
    ;;(str (-> @state/session :graph-data))
-
+   (when (:fight-error @state/session)
+       [:div.column [:div.has-background-danger-light "ERROR re-check parameters units"]])
 
    (graph)])
 
@@ -492,4 +528,4 @@
 ;;(cljs.pprint/pprint (:graph-data @state/session))
 
 
-(swap! state/session update :restart #(complement %))
+;;(swap! state/session update :restart #(complement %))

@@ -15,6 +15,22 @@
 ;; D6/3D6/3D6+2
 ;; nil when just "1"
 
+;; [0 1 5 7] -> [0 1 2 3 4 5 7]
+;; [1 2 3 4]    [1 2 0 0 0 3 4]
+;; [0 1] [1 2] [5 3] [7 4] -> [0 1] [1 2] [2 0] [3 0] [4 0] [5 3] [6 0] [7 4] -> [0
+(defn all-numbers [numbers]
+  (for [i (range 1 (+ 1 (apply max numbers)))]
+    i))
+
+
+(defn fill-gaps [numbers]
+  (reduce (fn [result value]
+            (if (get result value)
+              result
+              (assoc result value 0)))
+          (frequencies numbers)
+          (all-numbers numbers)))
+
 
 
 
@@ -82,7 +98,7 @@
       (+ add roll))
     (read-string dice)))
 
-(def additional-attacks-rules
+(def attacks-rules
   {:exploding-6s (fn []
                    (let [first-roll (roll-dice 6)]
                      (if (= first-roll 6)
@@ -91,6 +107,18 @@
    :auto-hit (fn [] true)
    })
 
+(def fnp-rules
+  {:none   (fn [wound] wound)
+   :fnp-5+ (fn [wound]
+                      (let [r (roll 6)]
+                        (if (and wound (>= r 5))
+                          false
+                          wound)))
+   :fnp-6+ (fn [wound]
+             (let [r (roll 6)]
+                        (if (and wound (>= r 6))
+                          false
+                          wound)))})
 
 (defn read-bs [bs]
   (read-string (string/replace bs "+" "")))
@@ -123,9 +151,10 @@
       (>= (- toughness strength) 1)  5
       (<= (- toughness strength) -1) 3)))
 
-(defn wound? [weapon target-model]
+(defn wound? [weapon target-model {:keys [wound-rules]}]
   (let [r (roll 6)]
-    (success? r (to-wound weapon target-model))))
+    (some true? (map #((% fnp-rules) (success? r (to-wound weapon target-model))) wound-rules)
+        )))
 
 (defn valid-value [value]
   (not= "-" value))
@@ -151,10 +180,10 @@
 (defn all-models-hit [model weapon rules]
   (repeat (* (roll-dice (:weapon-attacks weapon)) (read-string (:number model)))  {:hit (hit? model rules)}))
 
-(defn all-hits-wound [hits weapon target-unit]
+(defn all-hits-wound [hits weapon target-unit rules]
   (for [h hits]
     (if (:hit h)
-      (assoc h :wound (wound? weapon target-unit))
+      (assoc h :wound (wound? weapon target-unit rules))
       (assoc h :wound false))))
 
 (defn all-wounds-save [wounds weapon target]
@@ -174,28 +203,9 @@
   (map #(assoc % :success (and (:hit %) (not (:saved %)) (:wound %))) results))
 
 
-(defn shoot [model1 model2 w]
-  (let [h       (hit? model1)
-        s       (save? model2 w)
-        wounded (wound? w model2)
-        success (and h (not s) wounded)
-        result {:hit     h
-                :saved   (if (and h wounded s)
-                           true
-                           false)
-
-                :success success
-                :wounded (if h
-                           wounded
-                           false)
-                :damage (if success
-                          (roll-dice (damage w))
-                          0)}]
-    result))
-
 (defn all-shoot [shooter-model target weapon rules]
   (-> (all-models-hit shooter-model weapon rules)
-      (all-hits-wound weapon target)
+      (all-hits-wound weapon target rules)
       (all-wounds-save weapon target)
       (all-success)
       (all-damage weapon))
@@ -307,7 +317,7 @@
 (defn compute-stats [experiments]
   {:experiments experiments
    :damage-stats (stats/stats-map (total-damage (filter #(= (:success (first %)) true) experiments)))
-   :damage (total-damage (filter #(= (:success (first %)) true) experiments))
+   :damage (fill-gaps (total-damage (filter #(= (:success (first %)) true) experiments)))
    :avg-damage
    (/ (float (reduce + (total-damage (filter #(= (:success (first %)) true) experiments))))
       (count (filter #(= (:success (first %)) true) experiments)))
