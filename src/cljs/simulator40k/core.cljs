@@ -35,22 +35,21 @@
   )
 
 (defn graph []
-  [:div
-   [:div {:id "graph"}]
-   (when (:graph-data @state/session) [:p "Damage"])
-   [:div {:id "graph-damage"}]
-   [:div {:id "graph-damage-whisker"}]
-   (when (:graph-data @state/session)
-     [:div
-      [:p [:b "Success "]
-       (str (-> @state/session :graph-data :percentage-success) "%")]
-      [:p [:b (str "Min wounds: ")]
-       (-> @state/session :graph-data :min-damage)]
-      [:p [:b (str "Max wounds: ")]
-       (-> @state/session :graph-data :max-damage)]
-      [:p [:b (str "Average Wounds: ")]
-       (-> @state/session :graph-data :avg-damage)]]
-     (simulation-stats))
+  [:div.columns
+   [:div.column
+    [:div {:id "graph"}]
+    [:div {:id "graph-damage"}]
+    (when (:graph-data @state/session)
+      [:div
+       [:p [:b "Success "]
+        (str (-> @state/session :graph-data :percentage-success) "%")]
+       [:p [:b (str "Min wounds: ")]
+        (-> @state/session :graph-data :min-damage)]
+       [:p [:b (str "Max wounds: ")]
+        (-> @state/session :graph-data :max-damage)]
+       [:p [:b (str "Average Wounds: ")]
+        (-> @state/session :graph-data :avg-damage)]])
+    (simulation-stats)]
    ])
 
 ;;SECOND PAGE
@@ -328,7 +327,8 @@
                                  "rgba(204,204,204,1)"
                                  "rgba(204,204,204,1)"]}
 
-                        :type "bar"}]) (clj->js {:responsive true}))
+                        :type "bar"}]) (clj->js {:title "Fight results:"
+                                                 :responsive true}))
 
   ;; TODO: fill the gaps with 0 0 on damage
   ;; damage should take into consideration the wounds of the enemy
@@ -342,11 +342,8 @@
                         ;;:orientation "h"
                          :mode "markers"
                         :type "bar"}])
-                     (clj->js {
+                     (clj->js {:title "Damage graph:"
                                :xaxis {
-
-
-
                                        :title "Damage"}
                                :yaxis {:title      "Value"
                                        :tickformat "d"
