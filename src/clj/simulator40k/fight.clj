@@ -221,14 +221,6 @@
 ;;           0
 ;;           shots))
 
-(defn calculate-wounds [model1 model2 w]
-  (loop [n      (roll-dice (:number model1))
-         result []]
-    (if (> n 0)
-      (recur (dec n) (conj result (shoot model1 model2 w)))
-      result)))
-
-
 ;; TODO: number of attacks * number of units
 ;; number of attacks still not fixed
 
