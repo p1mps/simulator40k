@@ -20,7 +20,7 @@
    [clojure.string :as string])
   (:import goog.History))
 
-(def DEBUG true)
+(def DEBUG false)
 
 (defn simulation-stats []
   (when DEBUG
