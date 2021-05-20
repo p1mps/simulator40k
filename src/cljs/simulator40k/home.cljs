@@ -21,7 +21,7 @@
 (defn file-roaster [role]
   [:div
    [:div.field
-    [:label.label (str (name role) " roster:")]
+    [:label.label (str (name role) " roster: (rosz battlescribe file)")]
     [:div.file
      [:label.file-label.full-width
       [:input.file-input {:id        (name role)
