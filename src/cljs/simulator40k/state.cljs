@@ -32,7 +32,8 @@
                              :Defender nil}})
 
 (def runs-experiments
-  [{:id "1" :value "100"}
+  [{:id "0" :value "1"}
+   {:id "1" :value "100"}
    {:id "2" :value "1000"}])
 
 (def session (r/atom empty-state))

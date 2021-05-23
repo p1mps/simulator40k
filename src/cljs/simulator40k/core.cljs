@@ -308,26 +308,55 @@
 
   (js/Plotly.newPlot (.getElementById js/document "graph")
                      (clj->js
-                      [{:x ["successes" "not successes" "hits" "not hits" "wounds" "not wounds" "saves"  "not saves"]
-                        :y [(-> @state/session :graph-data :success)
-                            (-> @state/session :graph-data :not-success)
-                            (-> @state/session :graph-data :hits)
-                            (-> @state/session :graph-data :not-hits)
-                            (-> @state/session :graph-data :wounds)
-                            (-> @state/session :graph-data :not-wounds)
-                            (-> @state/session :graph-data :saves)
-                            (-> @state/session :graph-data :not-saves)]
-                        :marker
-                        {:color ["rgba(204,204,204,1)"
-                                 "rgba(204,204,204,1)"
-                                 "rgba(204,204,204,1)"
-                                 "rgba(204,204,204,1)"
-                                 "rgba(204,204,204,1)"
-                                 "rgba(204,204,204,1)"
-                                 "rgba(204,204,204,1)"
-                                 "rgba(204,204,204,1)"]}
+                      [{:x ["success"]
+                        :y [(-> @state/session :graph-data :success)]
+                        :showlegend true
+                        :name "success"
+                        :type "bar"}
 
-                        :type "bar"}]) (clj->js {:title "Fight results:"
+                       {:x ["hit"]
+                        :y [(-> @state/session :graph-data :hits)]
+                        :name "hit"
+                        :showlegend true
+                        :type "bar"}
+
+                       {:x ["wound"]
+                        :y [(-> @state/session :graph-data :wounds)]
+                        :name "wound"
+                        :showlegend true
+                        :type "bar"}
+
+                       {:x ["no save"]
+                        :y [(-> @state/session :graph-data :not-saves)
+                            ]
+                        :name "no save"
+                        :showlegend true
+                        :type "bar"}
+
+                       {:x ["no hit"]
+                        :y [(-> @state/session :graph-data :not-hits)]
+                        :name "no hit"
+                        :showlegend true
+                        :type "bar"}
+
+
+                       {:x ["no wound"]
+                        :y [(-> @state/session :graph-data :not-wounds)]
+                        :name "no wound"
+                        :showlegend true
+                        :type "bar"}
+
+
+                       {:x ["save"]
+                        :y [(-> @state/session :graph-data :saves)
+                            ]
+                        :name "save"
+                        :showlegend true
+                        :type "bar"}
+
+
+
+                       ]) (clj->js {:title "Fight results:"
                                                  :responsive true}))
 
   ;; TODO: fill the gaps with 0 0 on damage
@@ -441,7 +470,9 @@
                     (fn [element]
                       (.preventDefault element)
                       (let [e (.getElementById js/document "select-Runs")
+                            _ (println "selected run" (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e))))))
                             id (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
+                            _ (println "runs" state/runs-experiments)
                             runs (first (filter #(= (:id %) id) state/runs-experiments))]
                         (swap! state/session assoc :runs (:value runs)))) :runs)]]
 
