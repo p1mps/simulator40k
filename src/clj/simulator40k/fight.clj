@@ -19,7 +19,6 @@
 ;; [1 2 3 4]    [1 2 0 0 0 3 4]
 ;; [0 1] [1 2] [5 3] [7 4] -> [0 1] [1 2] [2 0] [3 0] [4 0] [5 3] [6 0] [7 4] -> [0
 (defn all-numbers [numbers]
-  (println "numbers" numbers)
   (for [i (range 0 (+ 1 (apply max numbers)))]
     i))
 
@@ -137,8 +136,9 @@
 
 (defn hit? [{{:keys [bs]} :chars} {:keys [hit-rules]}]
   ;;(println "type of re-rolls applied to hit" hit-rules)
-  (let [r (map #((% re-rolls) 6 (read-bs bs))  hit-rules)]
-    (some? (filter true? (map #(success? % (read-bs bs)) r)))
+  (let [r (roll 6)]
+    (success? r (read-bs bs))
+
       ))
 
 ;; TODO check double strength weapon
@@ -155,8 +155,8 @@
 
 (defn wound? [weapon target-model {:keys [wound-rules]}]
   (let [r (roll 6)]
-    (some? (filter true? (map #((% fnp-rules) (success? r (to-wound weapon target-model))) wound-rules))
-        )))
+    (success? r (to-wound weapon target-model))
+    ))
 
 (defn valid-value [value]
   (not= "-" value))
@@ -220,7 +220,7 @@
       (all-success)
       ;;(print-list)
       (all-damage weapon)
-      (print-list)
+      ;;(print-list)
       )
   )
 
@@ -313,15 +313,32 @@
 
        values ))
 
+(defn mode [data]
+  (first (last (sort-by second (frequencies data)))))
+
+(defn only-success [e]
+  (filter #(= (:success %))) e)
+
+(defn get-damage [experiments]
+  (sort (map #(reduce + (map :damage %))
+             experiments)))
 
 (defn compute-stats [experiments]
-  (println "experiments" experiments)
   {:experiments experiments
-   :damage-stats (stats/stats-map (map #(:damage (first %)) experiments))
-   :damage (fill-gaps (map #(:damage (first %)) experiments))
+   :damage-stats (stats/stats-map (get-damage experiments))
+   :damage (frequencies (get-damage experiments))
+   :damage-percentage (reverse (sort-by val
+                                        (reduce (fn [result value]
+                                                  (assoc result (first value) (percentage (count experiments) (second value))))
+                                                {}
+                                                (frequencies (get-damage experiments)))))
    :avg-damage
-   (/ (float (reduce + (map #(:damage (first %)) experiments)))
+   (/ (float (reduce + (get-damage experiments)))
       (count experiments))
+
+   :mode-damage
+   (mode (get-damage experiments))
+
 
    :success
    (total-success experiments true)
@@ -336,21 +353,23 @@
    (total-wounds experiments false)
 
    :max-damage
-   (apply max (map #(:damage (first %)) experiments))
+   (apply max (get-damage experiments))
 
    :min-damage
-   (apply min (map #(:damage (first %)) experiments))
+   (apply min (get-damage experiments))
 
    :percentage-success (format "%.2f"
                                (float (percentage
-                                       (count experiments)
-                                       (total-success experiments true))))
+                                       (reduce +
+                                               (map count experiments))
+                                       (total-success experiments true)
+                                       )))
 
    :hits
    (total-hits experiments true)
 
    :not-hits
-   (total-hits experiments nil)
+   (total-hits experiments false)
 
    :saves
    (total-saves experiments true)
