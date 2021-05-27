@@ -157,7 +157,7 @@
   [:div
    [:div.border
     [:h6 {:key "title"} (-> @state/session :attacker-model :name)]
-    [:div.field.is-horizontal {:key "field"}
+    [:div.field.is-horizontal {:key "BS"}
      [:div.field-label.is-normal
       [:label.label "BS/WS:"]]
      [:input.input
@@ -165,7 +165,7 @@
        :value (-> @state/session :attacker-model :chars :bs)
        :on-change    (fn [e]
                        (swap! state/session assoc-in [:attacker-model :chars :bs] (-> e .-target .-value)))}]]
-    [:div.field.is-horizontal {:key "field"}
+    [:div.field.is-horizontal {:key "Models"}
      [:div.field-label.is-normal
       [:label.label "Models"]]
      [:input.input
@@ -249,9 +249,9 @@
 (defn models []
   [:div.margin
    [:div.columns
-    [:div.column (attacker)]
-    [:div.column (attacker-weapons)]
-    [:div.column (defender)]]])
+    [:div.column {:key "attacker"} (attacker)]
+    [:div.column {:key "weapon"} (attacker-weapons)]
+    [:div.column {:key "defender"} (defender)]]])
 
 ;; END MODELS
 
