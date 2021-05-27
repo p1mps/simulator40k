@@ -32,10 +32,9 @@
 (defn graph []
   [:div.columns
    [:div.column
-    [:div {:id "graph"}]
-    [:div {:id "graph-damage"}]
-
-    (simulation-stats)]
+    [:div {:id "graph"}]]
+   [:div.column
+    [:div {:id "graph-damage"}]]
    ])
 
 ;;SECOND PAGE
@@ -57,19 +56,19 @@
   [:div.field
    [:div.select.is-dark.full-width
     [:select.full-width {:id        (str "select-" belong-to)
-                         :on-change #(let [select        (.-target %)
+                         :on-change #(let [select          (.-target %)
                                            selected-option (.-attributes (aget (.-options select) (.-selectedIndex select)))
-                                           force-id (-> selected-option .-idforce .-value)
-                                           unit-id  (-> selected-option .-idunit .-value)
-                                           model-id (-> selected-option .-idmodel .-value)]
+                                           force-id        (-> selected-option .-idforce .-value)
+                                           unit-id         (-> selected-option .-idunit .-value)
+                                           model-id        (-> selected-option .-idmodel .-value)]
                                        (println "selected " force-id unit-id model-id k belong-to)
                                        (set-model! force-id unit-id model-id k belong-to))}
      (for [m models]
-       [:optgroup  {:key (str m (:id (:unit m)))
+       [:optgroup  {:key   (str m (:id (:unit m)))
                     :label (:name (:unit m))}
         [:option
-         {:key (str m)
-          :idforce  (:id (:force m))
+         {:key     (str m)
+          :idforce (:id (:force m))
           :idunit  (:id (:unit m))
           :idmodel (:id (:model m))} (:name (:model m))]])]]])
 
@@ -139,7 +138,7 @@
                                                        (set-weapon! weapon-id))}
       (for [w weapons]
         [:option
-         {:id (:id w)
+         {:id  (:id w)
           :key (str w)} (:name w)])]]]])
 
 (defn dropdown-attacker-weapons []
@@ -161,17 +160,17 @@
      [:div.field-label.is-normal
       [:label.label "BS/WS:"]]
      [:input.input
-      {:type         "text"
-       :value (-> @state/session :attacker-model :chars :bs)
-       :on-change    (fn [e]
+      {:type      "text"
+       :value     (-> @state/session :attacker-model :chars :bs)
+       :on-change (fn [e]
                        (swap! state/session assoc-in [:attacker-model :chars :bs] (-> e .-target .-value)))}]]
     [:div.field.is-horizontal {:key "Models"}
      [:div.field-label.is-normal
       [:label.label "Models"]]
      [:input.input
-      {:type         "text"
-       :value (-> @state/session :attacker-model :number)
-       :on-change    (fn [e]
+      {:type      "text"
+       :value     (-> @state/session :attacker-model :number)
+       :on-change (fn [e]
                        (swap! state/session assoc-in [:attacker-model :number
                                                       ] (-> e .-target .-value)))}]]
     (-> @state/session :attacker-model :chars :description)]])
@@ -268,11 +267,11 @@
 
 
 (def rule->key
-  {"None" :none
-   "Re-roll 1s" :re-roll-1s
+  {"None"        :none
+   "Re-roll 1s"  :re-roll-1s
    "Re-roll all" :re-roll-all
-   "FNP 5+" :fnp-5+
-   "FNP 6+" :fnp-6+})
+   "FNP 5+"      :fnp-5+
+   "FNP 6+"      :fnp-6+})
 
 
 (defn read-response [response]
@@ -294,11 +293,11 @@
 
   (js/Plotly.newPlot (.getElementById js/document "graph")
                      (clj->js
-                      [{:x ["success"]
-                        :y [(-> @state/session :graph-data :success)]
+                      [{:x          ["success"]
+                        :y          [(-> @state/session :graph-data :success)]
                         :showlegend true
-                        :name "success"
-                        :type "bar"}
+                        :name       "success"
+                        :type       "bar"}
 
                        ;; {:x ["no success"]
                        ;;  :y [(-> @state/session :graph-data :not-success)]
@@ -306,11 +305,11 @@
                        ;;  :name "no success"
                        ;;  :type "bar"}
 
-                       {:x ["hit"]
-                        :y [(-> @state/session :graph-data :hits)]
-                        :name "hit"
+                       {:x          ["hit"]
+                        :y          [(-> @state/session :graph-data :hits)]
+                        :name       "hit"
                         :showlegend true
-                        :type "bar"}
+                        :type       "bar"}
 
                        ;; {:x ["no hit"]
                        ;;  :y [(-> @state/session :graph-data :not-hits)]
@@ -318,11 +317,11 @@
                        ;;  :showlegend true
                        ;;  :type "bar"}
 
-                       {:x ["wound"]
-                        :y [(-> @state/session :graph-data :wounds)]
-                        :name "wound"
+                       {:x          ["wound"]
+                        :y          [(-> @state/session :graph-data :wounds)]
+                        :name       "wound"
                         :showlegend true
-                        :type "bar"}
+                        :type       "bar"}
 
                        ;; {:x ["no wound"]
                        ;;  :y [(-> @state/session :graph-data :not-wounds)]
@@ -330,12 +329,12 @@
                        ;;  :showlegend true
                        ;;  :type "bar"}
 
-                       {:x ["save"]
-                        :y [(-> @state/session :graph-data :saves)
+                       {:x          ["save"]
+                        :y          [(-> @state/session :graph-data :saves)
                             ]
-                        :name "save"
+                        :name       "save"
                         :showlegend true
-                        :type "bar"}
+                        :type       "bar"}
 
                        ;; {:x ["no save"]
                        ;;  :y [(-> @state/session :graph-data :not-saves)
@@ -343,20 +342,20 @@
                        ;;  :name "no save"
                        ;;  :showlegend true
                        ;;  :type "bar"}
-                       ]) (clj->js {:title "Fight results:"
-                                                 :responsive true}))
+                       ]) (clj->js {:title      "Fight results:"
+                                    :responsive true}))
 
   ;; TODO: fill the gaps with 0 0 on damage
   ;; damage should take into consideration the wounds of the enemy
   (js/Plotly.newPlot (.getElementById js/document "graph-damage")
                      (clj->js
-                      [{:x (map js/parseInt (map name (map first (-> @state/session :graph-data :damage))))
-                        :y (map second (-> @state/session :graph-data :damage))
+                      [{:x    (map js/parseInt (map name (map first (-> @state/session :graph-data :damage))))
+                        :y    (map second (-> @state/session :graph-data :damage))
                         :name "damage"
                         ;;:width "100px"
                         ;;:heigth "100px"
                         ;;:orientation "h"
-                         :mode "markers"
+                        :mode "markers"
                         :type "bar"}])
                      (clj->js {:title "Damage graph:"
                                :xaxis {
@@ -377,19 +376,19 @@
 (defn table-damage []
   (let  [damage-percentage (take 3 (-> @state/session :graph-data :damage-percentage))]
     (when (not-empty damage-percentage)
-        [:div [:h3 "Table damage:"]
-         [:table.table
-          [:thead
-           [:th "N."]
-           [:th "Percentage:"]
-           ]
-          [:tbody
-           (for [d damage-percentage]
-             [:tr
-              [:td (first d)]
-              [:td (second d)]
-              ]
-             )]]]
+      [:div
+       [:table.table
+        [:thead
+         [:th "N. wounds:"]
+         [:th "Percentage:"]
+         ]
+        [:tbody
+         (for [d damage-percentage]
+           [:tr
+            [:td (first d)]
+            [:td (second d)]
+            ]
+           )]]]
       ))
   )
 
@@ -418,9 +417,9 @@
                         (.preventDefault e)
 
                         (println "swap!")
-                        (let [attacker (-> @state/session :attacker-model)
-                              weapons  (-> @state/session :defender-model :weapons)
-                              defender (:defender-model @state/session)
+                        (let [attacker             (-> @state/session :attacker-model)
+                              weapons              (-> @state/session :defender-model :weapons)
+                              defender             (:defender-model @state/session)
                               attacker-unit-models (-> @state/session :attacker-unit-models)]
                           ;;(init-models! (:defender-roster @state/session) :attacker-unit-models)
                           ;;(init-models! (:attacker-roster @state/session) :defender-unit-models)
@@ -439,11 +438,11 @@
                     state/hit-rules
                     (fn [event]
                       (.preventDefault event)
-                      (let [e (.-target event)
-                            id-select (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
-                            id (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
+                      (let [e            (.-target event)
+                            id-select    (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
+                            id           (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                             hit-rule-str (first (filter #(= (:id %) id) state/hit-rules))
-                            hit-rule (get rule->key (:value (js->clj hit-rule-str)))]
+                            hit-rule     (get rule->key (:value (js->clj hit-rule-str)))]
 
                         (swap! state/session update :rules #(update % :hit-rules (fn [e] (assoc e (js/parseInt id-select) hit-rule ))))
                         )) :hit)]
@@ -452,11 +451,11 @@
                     state/wound-rules
                     (fn [event]
                       (.preventDefault event)
-                      (let [e (.-target event)
-                            id-select (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
-                            id (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
+                      (let [e              (.-target event)
+                            id-select      (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
+                            id             (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                             wound-rule-str (first (filter #(= (:id %) id) state/wound-rules))
-                            wound-rule (get rule->key (:value (js->clj wound-rule-str)))]
+                            wound-rule     (get rule->key (:value (js->clj wound-rule-str)))]
                         (println wound-rule-str)
                         (swap! state/session update :rules #(update % :wound-rules (fn [e] (assoc e (js/parseInt id-select) wound-rule ))))
                         ))
@@ -476,8 +475,8 @@
                     state/runs-experiments
                     (fn [element]
                       (.preventDefault element)
-                      (let [e (.getElementById js/document "select-Runs")
-                            id (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
+                      (let [e    (.getElementById js/document "select-Runs")
+                            id   (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                             runs (first (filter #(= (:id %) id) state/runs-experiments))]
                         (swap! state/session assoc :runs (:value runs)))) :runs)]]
 
@@ -496,35 +495,49 @@
                                         attacker
                                         :weapons [(:attacker-weapon-selected @state/session)])]
 
-                          (POST "/api/fight" {:params  {:attacker attacker
-                                                        :defender (:defender-model @state/session)
-                                                        :rules    (:rules @state/session)
-                                                        :n        (:runs @state/session)}
-                                              :handler handler-fight
+                          (POST "/api/fight" {:params        {:attacker attacker
+                                                              :defender (:defender-model @state/session)
+                                                              :rules    (:rules @state/session)
+                                                              :n        (:runs @state/session)}
+                                              :handler       handler-fight
                                               :error-handler handler-error-fight})))}
 
-           "Fight"]]]]))
+           "Fight"]]
+         [:div.column
+          (when (:fight-error @state/session)
+            [:div.has-background-danger-light "ERROR re-check parameters units"])]
+         ]]))
 
 
 
    ;;(str (-> @state/session :graph-data))
-   (when (:fight-error @state/session)
-       [:div.column [:div.has-background-danger-light "ERROR re-check parameters units"]])
 
    (graph)
-   (table-damage)
-   (when (:graph-data @state/session)
-      [:div
-       [:p [:b "Success "]
-        (str (-> @state/session :graph-data :percentage-success) "%")]
-       [:p [:b (str "Min wounds: ")]
-        (-> @state/session :graph-data :min-damage)]
-       [:p [:b (str "Max wounds: ")]
-        (-> @state/session :graph-data :max-damage)]
-       [:p [:b (str "Average Wounds: ")]
-        (-> @state/session :graph-data :avg-damage)]
-       [:p [:b (str "Mode Wounds: ")]
-        (-> @state/session :graph-data :mode-damage)]])])
+   [:div.columns
+    [:div.column
+     (table-damage)]
+    (when (:graph-data @state/session)
+      [:div.column
+       [:table.table
+        [:thead
+         [:th "Stat"]
+         [:th "Value"]]
+        [:tbody
+         [:tr
+          [:td "Success"]
+          [:td (str (-> @state/session :graph-data :percentage-success) "%")]]
+         [:tr
+          [:td "Min wounds: "]
+          [:td (-> @state/session :graph-data :min-damage)]]
+         [:tr
+          [:td "Max wounds: "]
+          [:td (-> @state/session :graph-data :max-damage)]]
+         [:tr
+          [:td "Average wounds: "]
+          [:td (-> @state/session :graph-data :avg-damage)]]
+         [:tr
+          [:td "Mode wounds: "]
+          [:td (-> @state/session :graph-data :mode-damage)]]]]])]])
 
 (def pages
   {:home #'home-page})
