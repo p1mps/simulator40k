@@ -57,11 +57,11 @@
   [:div.field
    [:div.select.is-dark.full-width
     [:select.full-width {:id        (str "select-" belong-to)
-                         :on-change #(let [e        (.-target %)
-                                           force-id  (.-value (.-idforce (.-attributes (aget (.-options e) (.-selectedIndex e)))))
-                                           unit-id  (.-value (.-idunit (.-attributes (aget (.-options e) (.-selectedIndex e)))))
-                                           model-id (.-value (.-idmodel (.-attributes (aget (.-options e) (.-selectedIndex e)))))]
-
+                         :on-change #(let [select        (.-target %)
+                                           selected-option (.-attributes (aget (.-options select) (.-selectedIndex select)))
+                                           force-id (-> selected-option .-idforce .-value)
+                                           unit-id  (-> selected-option .-idunit .-value)
+                                           model-id (-> selected-option .-idmodel .-value)]
                                        (println "selected " force-id unit-id model-id k belong-to)
                                        (set-model! force-id unit-id model-id k belong-to))}
      (for [m models]
@@ -92,13 +92,13 @@
               [:div.field {:key i}
                [:div.select.is-dark.full-width
                 [:select.full-width {:key       (str title i)
-                                     :id-select i
-                                     :id        (str "select-" title)
+                                     ;;:id-select i
+                                     :id        i
                                      :on-change on-change-f}
                  (for [d data]
                    [:option
                     {:key (str d title (:id d))
-                     :id-select i
+                     ;;:id-select i
                      :id  (:id d)} (:value d)])]]]
 
               (when-not (= key-rule :runs)
@@ -440,7 +440,7 @@
                     (fn [event]
                       (.preventDefault event)
                       (let [e (.-target event)
-                            id-select (.-value (.-idselect (.-attributes (aget (.-options e) (.-selectedIndex e)))))
+                            id-select (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                             id (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                             hit-rule-str (first (filter #(= (:id %) id) state/hit-rules))
                             hit-rule (get rule->key (:value (js->clj hit-rule-str)))]
@@ -453,7 +453,7 @@
                     (fn [event]
                       (.preventDefault event)
                       (let [e (.-target event)
-                            id-select (.-value (.-idselect (.-attributes (aget (.-options e) (.-selectedIndex e)))))
+                            id-select (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                             id (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                             wound-rule-str (first (filter #(= (:id %) id) state/wound-rules))
                             wound-rule (get rule->key (:value (js->clj wound-rule-str)))]
@@ -477,9 +477,7 @@
                     (fn [element]
                       (.preventDefault element)
                       (let [e (.getElementById js/document "select-Runs")
-                            _ (println "selected run" (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e))))))
                             id (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
-                            _ (println "runs" state/runs-experiments)
                             runs (first (filter #(= (:id %) id) state/runs-experiments))]
                         (swap! state/session assoc :runs (:value runs)))) :runs)]]
 
