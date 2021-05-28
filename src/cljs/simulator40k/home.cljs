@@ -16,7 +16,7 @@
                       (dom/remove-children "graph-damage")
 
                       (reset! state/session state/empty-state))}
-      [:h6 "Simulator 40k"]]]]])
+     [:h6 "Battle Simulator 40k"]]]]])
 
 (defn file-roaster [role]
   [:div
@@ -42,6 +42,7 @@
   (swap! state/session assoc :error-upload false)
   (swap! state/session assoc :show-upload-files false)
   (swap! state/session assoc :error-upload false)
+  (swap! state/session assoc :show-loader-uploader false)
   )
 
 
@@ -60,7 +61,7 @@
                    {:name     "Upload"
                     :on-click (fn [e]
                                 (.preventDefault e)
-                                (swap! state/session assoc :show-loader true)
+                                (swap! state/session assoc :show-loader-uploader true)
                                 (let [file-attacker (aget (.-files
                                                            (.getElementById js/document "Attacker")) 0)
                                       file-defender (aget (.-files
@@ -74,7 +75,7 @@
                                                       :error-handler error-handler}))
                                 )} "Upload"]]
 
-     (when (:show-loader @state/session)
+     (when (:show-loader-uploader @state/session)
        [:div.column [:div.loader]])
 
 

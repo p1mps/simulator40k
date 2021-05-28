@@ -80,38 +80,24 @@
     :ap     1
     :runs   1}))
 
-(defn dropdown [title data on-change-f key-rule]
+(defn dropdown [title data on-change-f id]
   [:div [:h6 title]
    [:div.columns
     [:div.column
-     (into [:div]
-           (for [i (range 0 (get @num-rules key-rule))]
+     [:div.columns {:key (str title)}
+      [:div.field
+       [:div.select.is-dark.full-width
+        [:select.full-width {:key       id
+                             ;;:id-select i
+                             :id        id
+                             :on-change on-change-f}
+         (for [d data]
+           [:option
+            {:key (str d title (:id d))
+             ;;:id-select i
+             :id  (:id d)} (:value d)])]]]
 
-             [:div.columns {:key (str title i)}
-              [:div.field {:key i}
-               [:div.select.is-dark.full-width
-                [:select.full-width {:key       (str title i)
-                                     ;;:id-select i
-                                     :id        i
-                                     :on-change on-change-f}
-                 (for [d data]
-                   [:option
-                    {:key (str d title (:id d))
-                     ;;:id-select i
-                     :id  (:id d)} (:value d)])]]]
-
-              (when-not (= key-rule :runs)
-                [:div
-                 [:a {:href     "/#"
-                      :on-click (fn [e]
-                                  (.preventDefault e)
-                                  (if (= i 0)
-                                    (swap! num-rules update key-rule inc)
-                                    (swap! num-rules update key-rule dec)))}
-
-                  (if (= i 0)
-                    [:span.material-icons "add"]
-                    [:span.material-icons "remove"])]])]))]]])
+      ]]]])
 
 (defn dropdown-attacker-units []
   [:div
@@ -286,7 +272,9 @@
   (swap! state/session assoc :fight-error true)
   )
 
+
 (defn handler-fight [response]
+  (swap! state/session assoc :show-table true)
   (swap! state/session assoc :experiments (:experiments (:fight (read-response response))))
   (swap! state/session assoc :fight-error false)
   (swap! state/session assoc :graph-data (:fight (read-response response)))
@@ -370,7 +358,7 @@
                      )
 
   (swap! state/session assoc :fight-error false)
-  (swap! state/session assoc :show-loader false)
+  (swap! state/session assoc :show-loader-fight  false)
   )
 
 (defn table-damage []
@@ -445,7 +433,7 @@
                             hit-rule     (get rule->key (:value (js->clj hit-rule-str)))]
 
                         (swap! state/session update :rules #(update % :hit-rules (fn [e] (assoc e (js/parseInt id-select) hit-rule ))))
-                        )) :hit)]
+                        )) "hit-rules")]
          [:div.column
           (dropdown "Wounds rules"
                     state/wound-rules
@@ -459,25 +447,26 @@
                         (println wound-rule-str)
                         (swap! state/session update :rules #(update % :wound-rules (fn [e] (assoc e (js/parseInt id-select) wound-rule ))))
                         ))
-                    :wound)]
+                    "wound-rules")]
 
          [:div.column
           (dropdown "Damage rules"
                     state/damage-rules
-                    (fn [e] ()) :damage)]
+                    (fn [e] ()) "damage-rules")]
 
          [:div.column
           (dropdown " Ap rules"
-                    state/ap-rules (fn [e] ()) :ap)]
+                    state/ap-rules (fn [e] ()) "ap rules")]
 
          [:div.column
           (dropdown "Runs"
                     state/runs-experiments
                     (fn [element]
                       (.preventDefault element)
-                      (let [e    (.getElementById js/document "select-Runs")
+                      (let [e    (.getElementById js/document "runs")
                             id   (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                             runs (first (filter #(= (:id %) id) state/runs-experiments))]
+                        (println "set runs experiments" e id runs)
                         (swap! state/session assoc :runs (:value runs)))) :runs)]]
 
         [:div.columns {:key "fight"}
@@ -488,8 +477,8 @@
                         (.preventDefault e)
                         (dom/remove-children "graph")
                         (dom/remove-children "graph-damage")
-
-                        (swap! state/session assoc :show-loader true)
+                        (:show-loader @state/session)
+                        (swap! state/session assoc :show-loader-fight true)
                         (let [attacker (:attacker-model @state/session)
                               attacker (assoc
                                         attacker
@@ -500,9 +489,14 @@
                                                               :rules    (:rules @state/session)
                                                               :n        (:runs @state/session)}
                                               :handler       handler-fight
-                                              :error-handler handler-error-fight})))}
+                                              :error-handler handler-error-fight})
+                          (swap! state/session assoc :show-table false)))}
 
-           "Fight"]]
+           "Fight"]
+          [:div.column
+          (when (:show-loader-fight @state/session)
+            [:div.loader])]]
+
          [:div.column
           (when (:fight-error @state/session)
             [:div.has-background-danger-light "ERROR re-check parameters units"])]
@@ -515,8 +509,9 @@
    (graph)
    [:div.columns
     [:div.column
-     (table-damage)]
-    (when (:graph-data @state/session)
+     (when (:show-table @state/session)
+       (table-damage))]
+    (when (:show-table @state/session)
       [:div.column
        [:table.table
         [:thead

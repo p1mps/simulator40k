@@ -5,8 +5,10 @@
 (def number-experiments "100")
 
 (def empty-state
-  {:fight-error             false
-   :show-loader             false
+  {:show-table              false
+   :fight-error             false
+   :show-loader-fight             false
+   :show-loader-uploader             false
    :rules                   {:hit-rules [:none]
                              :wound-rules [:none]
                              :ap-rules [:none]
