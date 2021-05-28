@@ -30,7 +30,12 @@
      [:p [:b (str "Damage: " ) ]
       (str (map #(reduce + (map :damage %)) (-> @state/session :experiments)))
       (str (-> @state/session :graph-data :damage))
-      (-> @state/session :graph-data :damage-stats)]])
+      (-> @state/session :graph-data :damage-stats)]
+
+
+     [:p (str "Experiments " (-> @state/session :experiments))]
+
+     ])
   )
 
 (defn graph []
@@ -261,7 +266,8 @@
    "Re-roll 1s"  :re-roll-1s
    "Re-roll all" :re-roll-all
    "FNP 5+"      :fnp-5+
-   "FNP 6+"      :fnp-6+})
+   "FNP 6+"      :fnp-6+
+   "Exploding 6's" :exploding-6s})
 
 
 (defn read-response [response]
@@ -286,7 +292,7 @@
   (js/Plotly.newPlot (.getElementById js/document "graph")
                      (clj->js
                       [{:x          ["success"]
-                        :y          [(-> @state/session :graph-data :success)]
+                        :y          [(-> @state/session :graph-data :percentage-success)]
                         :showlegend true
                         :name       "success"
                         :type       "bar"}
@@ -298,7 +304,7 @@
                        ;;  :type "bar"}
 
                        {:x          ["hit"]
-                        :y          [(-> @state/session :graph-data :hits)]
+                        :y          [(-> @state/session :graph-data :percentage-hit)]
                         :name       "hit"
                         :showlegend true
                         :type       "bar"}
@@ -310,7 +316,7 @@
                        ;;  :type "bar"}
 
                        {:x          ["wound"]
-                        :y          [(-> @state/session :graph-data :wounds)]
+                        :y          [(-> @state/session :graph-data :percentage-wound)]
                         :name       "wound"
                         :showlegend true
                         :type       "bar"}
@@ -322,7 +328,7 @@
                        ;;  :type "bar"}
 
                        {:x          ["save"]
-                        :y          [(-> @state/session :graph-data :saves)
+                        :y          [(-> @state/session :graph-data :percentage-save)
                             ]
                         :name       "save"
                         :showlegend true
@@ -365,9 +371,42 @@
   (swap! state/session assoc :show-loader-fight  false)
   )
 
+(defn table-stats []
+  (when (-> @state/session :show-table)
+    [:div.column
+     [:table.table
+      [:thead
+       [:th "Stat"]
+       [:th "Value"]]
+      [:tbody
+       [:tr
+        [:td "Hit"]
+        [:td (str (-> @state/session :graph-data :percentage-hit) "%")]]
+       [:tr
+        [:td "Wound"]
+        [:td (str (-> @state/session :graph-data :percentage-wound) "%")]]
+       [:tr
+        [:td "Save"]
+        [:td (str (-> @state/session :graph-data :percentage-save) "%")]]
+       [:tr
+        [:td "Success"]
+        [:td (str (-> @state/session :graph-data :percentage-success) "%")]]
+       [:tr
+        [:td "Min wounds: "]
+        [:td (-> @state/session :graph-data :min-damage)]]
+       [:tr
+        [:td "Max wounds: "]
+        [:td (-> @state/session :graph-data :max-damage)]]
+       [:tr
+        [:td "Average wounds: "]
+        [:td (-> @state/session :graph-data :avg-damage)]]
+       [:tr
+        [:td "Mode wounds: "]
+        [:td (-> @state/session :graph-data :mode-damage)]]]]]))
+
 (defn table-damage []
-  (let  [damage-percentage (take 3 (-> @state/session :graph-data :damage-percentage))]
-    (when (not-empty damage-percentage)
+  (let  [damage-percentage (take 10 (-> @state/session :graph-data :damage-percentage))]
+    (when (-> @state/session :show-table)
       [:div
        [:table.table
         [:thead
@@ -475,8 +514,8 @@
            {:name     "fight"
             :on-click (fn [e]
                         (.preventDefault e)
-                        (dom/remove-children "graph")
-                        (dom/remove-children "graph-damage")
+                        ;;(dom/remove-children "graph")
+                        ;;(dom/remove-children "graph-damage")
                         (:show-loader @state/session)
                         (swap! state/session assoc :show-loader-fight true)
                         (let [attacker (:attacker-model @state/session)
@@ -491,7 +530,9 @@
                                                               :n        (:runs @state/session)}
                                               :handler       handler-fight
                                               :error-handler handler-error-fight})
-                          (swap! state/session assoc :show-table false)))}
+                          (swap! state/session assoc :show-table false))
+                        )
+            }
 
            "Fight"]
           [:div.column
@@ -510,32 +551,9 @@
    (graph)
    [:div.columns
     [:div.column
-     (when (:show-table @state/session)
-       (table-damage))]
-    (when (:show-table @state/session)
-      [:div.column
-       [:table.table
-        [:thead
-         [:th "Stat"]
-         [:th "Value"]]
-        [:tbody
-         [:tr
-          [:td "Success"]
-          [:td (str (-> @state/session :graph-data :percentage-success) "%")]]
-         [:tr
-          [:td "Min wounds: "]
-          [:td (-> @state/session :graph-data :min-damage)]]
-         [:tr
-          [:td "Max wounds: "]
-          [:td (-> @state/session :graph-data :max-damage)]]
-         [:tr
-          [:td "Average wounds: "]
-          [:td (-> @state/session :graph-data :avg-damage)]]
-         [:tr
-          [:td "Mode wounds: "]
-          [:td (-> @state/session :graph-data :mode-damage)]]]]])]
-   (when (:show-table @state/session)
-     (simulation-stats))])
+     (table-stats)]
+    [:div.column (table-damage)]
+    (simulation-stats)]])
 
 (def pages
   {:home #'home-page})

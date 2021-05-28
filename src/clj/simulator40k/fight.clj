@@ -150,7 +150,8 @@
 (defn hit? [{{:keys [bs]} :chars} {:keys [hit-rule]}]
   ;;(println "type of re-rolls applied to hit" hit-rules)
   (let [r ((get-hit-roll-fn hit-rule (read-bs bs)))]
-    (success? r (read-bs bs))
+    {:hit (success? r (read-bs bs))
+     :roll r}
 
       ))
 
@@ -194,7 +195,12 @@
   d)
 
 (defn all-models-hit [model weapon {:keys [hit-rule]}]
-  (repeat (* (roll-dice (:weapon-attacks weapon)) (read-string (:number model)))  {:hit (hit? model hit-rule)}))
+  (let [rolls (repeat (* (roll-dice (:weapon-attacks weapon)) (read-string (:number model)))  (hit? model hit-rule))]
+    (if (= hit-rule :exploding-6s)
+      (let [n6s (count (filter #{6} (map :roll rolls)))]
+        (concat rolls (repeat n6s {:hit  true
+                             :roll 6})))
+      rolls)))
 
 (defn all-hits-wound [hits weapon target-unit rules]
   (for [h hits]
@@ -378,6 +384,31 @@
                                                (map count experiments))
                                        (total-success experiments true)
                                        )))
+
+
+   :percentage-hit (format "%.2f"
+                           (float (percentage
+                                   (reduce +
+                                           (map count experiments))
+
+                                   (total-hits experiments true)
+                                   )))
+
+   :percentage-wound (format "%.2f"
+                           (float (percentage
+                                   (reduce +
+                                           (map count experiments))
+
+                                   (total-wounds experiments true)
+                                   )))
+
+   :percentage-save (format "%.2f"
+                           (float (percentage
+                                   (reduce +
+                                           (map count experiments))
+
+                                   (total-saves experiments true)
+                                   )))
 
    :hits
    (total-hits experiments true)

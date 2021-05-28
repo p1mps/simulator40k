@@ -16,7 +16,7 @@
                       (dom/remove-children "graph-damage")
 
                       (reset! state/session state/empty-state))}
-     [:h6 "Battle Simulator 40k"]]]]])
+     [:h6 "Simulator 40k"]]]]])
 
 (defn file-roaster [role]
   [:div
