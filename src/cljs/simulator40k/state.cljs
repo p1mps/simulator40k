@@ -7,12 +7,12 @@
 (def empty-state
   {:show-table              false
    :fight-error             false
-   :show-loader-fight             false
-   :show-loader-uploader             false
-   :rules                   {:hit-rules [:none]
-                             :wound-rules [:none]
-                             :ap-rules [:none]
-                             :damage-rules [:none]}
+   :show-loader-fight       false
+   :show-loader-uploader    false
+   :hit-rule                nil
+   :wound-rule              nil
+   :ap-rule                 nil
+   :damage-rule             nil
    :runs                    number-experiments
    :restart                 false
    :error-upload            false
@@ -21,8 +21,8 @@
    :number-experiments      number-experiments
    :defender-unit-models    nil
    :attacker-unit-models    nil
-   :attacker-model nil
-   :defender-model nil
+   :attacker-model          nil
+   :defender-model          nil
    :graph-data              nil
    :attacker-weapons        nil
    :attacker-weapon-selected nil

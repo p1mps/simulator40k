@@ -134,9 +134,22 @@
 
 (defn exploding-hits [])
 
-(defn hit? [{{:keys [bs]} :chars} {:keys [hit-rules]}]
+(defn get-hit-roll-fn [hit-rule bs]
+  (condp = hit-rule
+    nil (fn [] (roll 6))
+    :re-roll-1s (fn [] (let [r (roll 6)]
+                        (if (= r 1)
+                          (roll 6)
+                          r)))
+    :re-roll-all (fn [] (let [r (roll 6)]
+                        (if (< r bs)
+                          (roll 6)
+                          r)))))
+
+
+(defn hit? [{{:keys [bs]} :chars} {:keys [hit-rule]}]
   ;;(println "type of re-rolls applied to hit" hit-rules)
-  (let [r (roll 6)]
+  (let [r ((get-hit-roll-fn hit-rule (read-bs bs)))]
     (success? r (read-bs bs))
 
       ))
@@ -153,9 +166,10 @@
       (>= (- toughness strength) 1)  5
       (<= (- toughness strength) -1) 3)))
 
-(defn wound? [weapon target-model {:keys [wound-rules]}]
-  (let [r (roll 6)]
-    (success? r (to-wound weapon target-model))
+(defn wound? [weapon target-model {:keys [wound-rule]}]
+  (let [to-wound (to-wound weapon target-model)
+        r ((get-hit-roll-fn wound-rule to-wound))]
+    (success? r to-wound)
     ))
 
 (defn valid-value [value]
@@ -179,8 +193,8 @@
 (defn damage [{{:keys [d]} :chars}]
   d)
 
-(defn all-models-hit [model weapon rules]
-  (repeat (* (roll-dice (:weapon-attacks weapon)) (read-string (:number model)))  {:hit (hit? model rules)}))
+(defn all-models-hit [model weapon {:keys [hit-rule]}]
+  (repeat (* (roll-dice (:weapon-attacks weapon)) (read-string (:number model)))  {:hit (hit? model hit-rule)}))
 
 (defn all-hits-wound [hits weapon target-unit rules]
   (for [h hits]
@@ -385,6 +399,7 @@
 
 (defn stats [{:keys [attacker defender n rules]}]
   (println "running " n "simulations")
+  (println rules)
   (-> (monte-carlo-shoot attacker defender (read-string n) rules)
       (compute-stats)))
 
@@ -397,15 +412,4 @@
 
   (def captain-model (first (:models captain)))
 
-  (simulator40k.parse/parse "Death riders 2000.rosz")
-
-  (shoot captain-model captain-model)
-
-  (monte-carlo-shoot captain-model captain-model 1)
-
-  (get-in captain [:chars])
-  (bs captain)
-
-  (stats captain squad)
-
-  (stats squad squad))
+  (simulator40k.parse/parse "Death riders 2000.rosz"))

@@ -22,7 +22,11 @@
      [:p (str "Attacker Weapon selected" (-> @state/session :attacker-weapon-selected))]
      [:p (str "Weapons " (map :name (-> @state/session :attacker-model :weapons)))]
      [:p (str "Defender " (-> @state/session :defender-model :chars))]
-     [:p (str "Rules " (:rules @state/session))]
+     [:p (str "Hit rule " (:hit-rule @state/session))]
+     [:p (str "Wound rule " (:wound-rule @state/session))]
+     [:p (str "Ap rule " (:ap-rule @state/session))]
+     [:p (str "Damage rule " (:damage-rule @state/session))]
+
      [:p [:b (str "Damage: " ) ]
       (str (map #(reduce + (map :damage %)) (-> @state/session :experiments)))
       (str (-> @state/session :graph-data :damage))
@@ -253,7 +257,7 @@
 
 
 (def rule->key
-  {"None"        :none
+  {"None"        nil
    "Re-roll 1s"  :re-roll-1s
    "Re-roll all" :re-roll-all
    "FNP 5+"      :fnp-5+
@@ -427,26 +431,22 @@
                     (fn [event]
                       (.preventDefault event)
                       (let [e            (.-target event)
-                            id-select    (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                             id           (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                             hit-rule-str (first (filter #(= (:id %) id) state/hit-rules))
                             hit-rule     (get rule->key (:value (js->clj hit-rule-str)))]
 
-                        (swap! state/session update :rules #(update % :hit-rules (fn [e] (assoc e (js/parseInt id-select) hit-rule ))))
-                        )) "hit-rules")]
+                        (swap! state/session assoc :hit-rule hit-rule))) "hit-rules")]
          [:div.column
           (dropdown "Wounds rules"
                     state/wound-rules
                     (fn [event]
                       (.preventDefault event)
                       (let [e              (.-target event)
-                            id-select      (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                             id             (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                             wound-rule-str (first (filter #(= (:id %) id) state/wound-rules))
                             wound-rule     (get rule->key (:value (js->clj wound-rule-str)))]
-                        (println wound-rule-str)
-                        (swap! state/session update :rules #(update % :wound-rules (fn [e] (assoc e (js/parseInt id-select) wound-rule ))))
-                        ))
+                        (swap! state/session assoc :wound-rule wound-rule)))
+
                     "wound-rules")]
 
          [:div.column
@@ -486,7 +486,8 @@
 
                           (POST "/api/fight" {:params        {:attacker attacker
                                                               :defender (:defender-model @state/session)
-                                                              :rules    (:rules @state/session)
+                                                              :rules (select-keys @state/session [:hit-rule :wound-rule :ap-rule :damage-rule])
+                                                              :damage-rule  (:damage-rule @state/session)
                                                               :n        (:runs @state/session)}
                                               :handler       handler-fight
                                               :error-handler handler-error-fight})
@@ -494,17 +495,17 @@
 
            "Fight"]
           [:div.column
-          (when (:show-loader-fight @state/session)
-            [:div.loader])]]
+           (when (:show-loader-fight @state/session)
+             [:div.loader])]]
 
          [:div.column
           (when (:fight-error @state/session)
-            [:div.has-background-danger-light "ERROR re-check parameters units"])]
-         ]]))
+            [:div.has-background-danger-light "ERROR re-check parameters units"])]]]))
 
 
 
    ;;(str (-> @state/session :graph-data))
+
 
    (graph)
    [:div.columns
@@ -532,7 +533,9 @@
           [:td (-> @state/session :graph-data :avg-damage)]]
          [:tr
           [:td "Mode wounds: "]
-          [:td (-> @state/session :graph-data :mode-damage)]]]]])]])
+          [:td (-> @state/session :graph-data :mode-damage)]]]]])]
+   (when (:show-table @state/session)
+     (simulation-stats))])
 
 (def pages
   {:home #'home-page})
