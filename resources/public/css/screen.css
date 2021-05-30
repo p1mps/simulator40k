@@ -65,3 +65,7 @@ body {
 @loader {
 
 }
+
+.block {
+    display: inline;
+}

@@ -53,13 +53,16 @@
   [{:id "0" :value "None"}
    {:id "1" :value "Re-roll 1s"}
    {:id "2" :value "Re-roll all"}
-   {:id "3" :value "Mortal wounds on 6's"}
-   {:id "4" :value "+1 damage on 6's"}
-   {:id "5" :value "Auto wound on 6's"}
-   {:id "6" :value "Ignore Fnp"}
-   {:id "7" :value "FNP 5+"}
-   {:id "8" :value "FNP 6+"}
-   {:id "9" :value "Always wound on 2's"}])
+   ;; {:id "3" :value "Mortal wounds on 6's"}
+   ;; {:id "4" :value "+1 damage on 6's"}
+   ;; {:id "5" :value "Auto wound on 6's"}
+   ;; {:id "6" :value "Ignore Fnp"}
+   ;; {:id "7" :value "FNP 5+"}
+   ;; {:id "8" :value "FNP 6+"}
+   ;; {:id "9" :value "Always wound on 2's"}
+   ]
+
+  )
 
 (def damage-rules
   [{:id "0" :value "None"}
@@ -67,6 +70,6 @@
    {:id "2" :value "First wound 0 damage"}])
 
 (def ap-rules
-  [{:id "1" :value "none"}
+  [{:id "1" :value "None"}
    {:id "2" :value "Increase AP on 6's"}
    {:id "3" :value "quantum shielding"}])

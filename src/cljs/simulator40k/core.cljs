@@ -99,7 +99,10 @@
         [:select.full-width {:key       id
                              ;;:id-select i
                              :id        id
-                             :on-change on-change-f}
+                             :on-change on-change-f
+                             :disabled (if (or (= "Damage rules" title) (= "Ap rules" title))
+                                         true
+                                         false)}
          (for [d data]
            [:option
             {:key (str d title (:id d))
@@ -291,11 +294,7 @@
 
   (js/Plotly.newPlot (.getElementById js/document "graph")
                      (clj->js
-                      [{:x          ["success"]
-                        :y          [(-> @state/session :graph-data :percentage-success)]
-                        :showlegend true
-                        :name       "success"
-                        :type       "bar"}
+                      [
 
                        ;; {:x ["no success"]
                        ;;  :y [(-> @state/session :graph-data :not-success)]
@@ -327,49 +326,46 @@
                        ;;  :showlegend true
                        ;;  :type "bar"}
 
-                       {:x          ["save"]
-                        :y          [(-> @state/session :graph-data :percentage-save)
-                            ]
-                        :name       "save"
-                        :showlegend true
-                        :type       "bar"}
-
-                       ;; {:x ["no save"]
-                       ;;  :y [(-> @state/session :graph-data :not-saves)
-                       ;;      ]
-                       ;;  :name "no save"
+                       ;; {:x          ["save"]
+                       ;;  :y          [(-> @state/session :graph-data :percentage-save)]
+                       ;;  :name       "save"
                        ;;  :showlegend true
-                       ;;  :type "bar"}
-                       ]) (clj->js {:title      "Fight results:"
-                                    :responsive true}))
+                       ;;  :type       "bar"}
+
+
+                       {:x ["no save"]
+                        :y [(-> @state/session :graph-data :percentage-not-save)
+                            ]
+                        :name "no save"
+                        :showlegend true
+                        :type "bar"}
+
+                       {:x          ["success"]
+                        :y          [(-> @state/session :graph-data :percentage-success)]
+                        :showlegend true
+                        :name       "success"
+                        :type       "bar"}
+                       ])(clj->js {:title      "% Hit Wound Save Success"
+                                   :yaxis      {:title {:text "Percentage"}}
+                                   :responsive true}))
 
   ;; TODO: fill the gaps with 0 0 on damage
   ;; damage should take into consideration the wounds of the enemy
   (js/Plotly.newPlot (.getElementById js/document "graph-damage")
                      (clj->js
-                      [{:x    (map js/parseInt (map name (map first (-> @state/session :graph-data :damage))))
-                        :y    (map second (-> @state/session :graph-data :damage))
-                        :name "damage"
+                      [{:y    (-> @state/session :graph-data :damage)
+                        :name ""
+                        :boxpoints false
                         ;;:width "100px"
                         ;;:heigth "100px"
                         ;;:orientation "h"
-                        :mode "markers"
-                        :type "bar"}])
-                     (clj->js {:title "Damage graph:"
-                               :xaxis {
-                                       :title "Damage"}
-                               :yaxis {:title      "Value"
-                                       :tickformat "d"
-                                       }
-
-
-                               })
-
-                     )
+                        ;;:mode "markers"
+                        :type "box"}])
+                     (clj->js {:title "Damage"
+                               :yaxis      {:title {:text "Damage"}}}))
 
   (swap! state/session assoc :fight-error false)
-  (swap! state/session assoc :show-loader-fight  false)
-  )
+  (swap! state/session assoc :show-loader-fight  false))
 
 (defn table-stats []
   (when (-> @state/session :show-table)
@@ -397,12 +393,14 @@
        [:tr
         [:td "Max wounds: "]
         [:td (-> @state/session :graph-data :max-damage)]]
-       [:tr
-        [:td "Average wounds: "]
-        [:td (-> @state/session :graph-data :avg-damage)]]
-       [:tr
-        [:td "Mode wounds: "]
-        [:td (-> @state/session :graph-data :mode-damage)]]]]]))
+       ;; [:tr
+       ;;  [:td "Average wounds: "]
+       ;;  [:td (-> @state/session :graph-data :avg-damage)]]
+       ;; [:tr
+       ;;  [:td "Mode wounds: "]
+       ;;  [:td (-> @state/session :graph-data :mode-damage)]]
+
+       ]]]))
 
 (defn table-damage []
   (let  [damage-percentage (take 10 (-> @state/session :graph-data :damage-percentage))]
@@ -440,28 +438,7 @@
 
         (models)
 
-        [:div.columns {:key "swap"}
-         [:div.column
-          [:button.button.is-dark.is-medium
-           {:name     "Swap"
-            :on-click (fn [e]
-                        (.preventDefault e)
 
-                        (println "swap!")
-                        (let [attacker             (-> @state/session :attacker-model)
-                              weapons              (-> @state/session :defender-model :weapons)
-                              defender             (:defender-model @state/session)
-                              attacker-unit-models (-> @state/session :attacker-unit-models)]
-                          ;;(init-models! (:defender-roster @state/session) :attacker-unit-models)
-                          ;;(init-models! (:attacker-roster @state/session) :defender-unit-models)
-                          ;;(init-weapons!)
-                          (swap! state/session assoc :attacker-unit-models (-> @state/session :defender-unit-models))
-                          (swap! state/session assoc :defender-unit-models attacker-unit-models)
-                          (swap! state/session assoc :attacker-model defender)
-                          (swap! state/session assoc :attacker-model defender)
-                          (swap! state/session assoc :attacker-weapons weapons)
-                          (swap! state/session assoc :defender-model attacker)
-                          (set-weapon! "0")))} "Swap Attacker defender"]]]
 
         [:div.columns
          [:div.column
@@ -494,7 +471,7 @@
                     (fn [e] ()) "damage-rules")]
 
          [:div.column
-          (dropdown " Ap rules"
+          (dropdown "Ap rules"
                     state/ap-rules (fn [e] ()) "ap rules")]
 
          [:div.column
@@ -538,6 +515,29 @@
           [:div.column
            (when (:show-loader-fight @state/session)
              [:div.loader])]]
+         ;; [:div.column
+         ;;  [:button.button.is-dark.is-medium
+         ;;   {:name     "Swap"
+         ;;    :on-click (fn [e]
+         ;;                (.preventDefault e)
+
+         ;;                (println "swap!")
+         ;;                (let [attacker             (-> @state/session :attacker-model)
+         ;;                      weapons              (-> @state/session :defender-model :weapons)
+         ;;                      defender             (:defender-model @state/session)
+         ;;                      attacker-unit-models (-> @state/session :attacker-unit-models)]
+         ;;                  ;;(init-models! (:defender-roster @state/session) :attacker-unit-models)
+         ;;                  ;;(init-models! (:attacker-roster @state/session) :defender-unit-models)
+         ;;                  ;;(init-weapons!)
+         ;;                  (swap! state/session assoc :attacker-unit-models (-> @state/session :defender-unit-models))
+         ;;                  (swap! state/session assoc :defender-unit-models attacker-unit-models)
+         ;;                  (swap! state/session assoc :attacker-model defender)
+         ;;                  (swap! state/session assoc :attacker-model defender)
+         ;;                  (swap! state/session assoc :attacker-weapons weapons)
+         ;;                  (swap! state/session assoc :defender-model attacker)
+         ;;                  (set-weapon! "0")))} "Swap Attacker defender"]]
+
+
 
          [:div.column
           (when (:fight-error @state/session)
@@ -550,9 +550,9 @@
 
    (graph)
    [:div.columns
-    [:div.column
-     (table-stats)]
-    [:div.column (table-damage)]
+    ;; [:div.column
+    ;;  (table-stats)]
+    ;;[:div.column (table-damage)]
     (simulation-stats)]])
 
 (def pages

@@ -7,6 +7,8 @@
 (def number-experiments 100)
 
 
+;; TODO set damage max to n.wounds defender
+
 ;; TODO: handle grenades (either shoot or grenade)
 ;; TODO: count failures
 
@@ -346,7 +348,7 @@
 (defn compute-stats [experiments]
   {:experiments experiments
    :damage-stats (stats/stats-map (get-damage experiments))
-   :damage (frequencies (get-damage experiments))
+   :damage (set (sort (get-damage experiments)))
    :damage-percentage (reverse (sort-by val
                                         (reduce (fn [result value]
                                                   (assoc result (first value) (percentage (count experiments) (second value))))
@@ -402,12 +404,12 @@
                                    (total-wounds experiments true)
                                    )))
 
-   :percentage-save (format "%.2f"
+   :percentage-not-save (format "%.2f"
                            (float (percentage
                                    (reduce +
                                            (map count experiments))
 
-                                   (total-saves experiments true)
+                                   (total-saves experiments false)
                                    )))
 
    :hits
