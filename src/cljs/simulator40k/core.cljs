@@ -270,6 +270,7 @@
   {"None"        nil
    "Re-roll 1s"  :re-roll-1s
    "Re-roll all" :re-roll-all
+   "Auto hit"    :auto-hit
    "FNP 5+"      :fnp-5+
    "FNP 6+"      :fnp-6+
    "Exploding 6's" :exploding-6s})
@@ -342,12 +343,12 @@
                         :showlegend true
                         :type "bar"}
 
-                       {:x          ["success"]
-                        :y          [(-> @state/session :graph-data :percentage-success)]
-                        :showlegend true
-                        :name       "success"
-                        :type       "bar"}
-                       ])(clj->js {:title      "% Hit Wound No Save Success"
+                       ;; {:x          ["success"]
+                       ;;  :y          [(-> @state/session :graph-data :percentage-success)]
+                       ;;  :showlegend true
+                       ;;  :name       "success"
+                       ;;  :type       "bar"}
+                       ])(clj->js {:title      "% Hit Wound No Save"
                                    :yaxis      {:title {:text "Percentage"}}
                                    :responsive true}))
 
@@ -355,13 +356,18 @@
   ;; damage should take into consideration the wounds of the enemy
   (js/Plotly.newPlot (.getElementById js/document "graph-damage")
                      (clj->js
-                      [{:y    (-> @state/session :graph-data :damage)
+                      [{
                         :name ""
                         :boxpoints false
                         ;;:width "100px"
                         ;;:heigth "100px"
                         ;;:orientation "h"
                         ;;:mode "markers"
+                        :lowerfence [(:Min (-> @state/session :graph-data :damage-stats))]
+                        :q1 [(:Q1 (-> @state/session :graph-data :damage-stats))]
+                        :median [(:Median (-> @state/session :graph-data :damage-stats))]
+                        :q3 [(:Q3 (-> @state/session :graph-data :damage-stats))]
+                        :upperfence [(:Max (-> @state/session :graph-data :damage-stats))(-> @state/session :graph-data :max-damage)]
                         :type "box"}])
                      (clj->js {:title "Damage"
                                :yaxis      {:title {:text "Damage"}}}))
@@ -384,18 +390,12 @@
         [:td "Wound"]
         [:td (str (-> @state/session :graph-data :percentage-wound) "%")]]
        [:tr
-        [:td "Save"]
-        [:td (str (-> @state/session :graph-data :percentage-save) "%")]]
-       [:tr
-        [:td "Success"]
-        [:td (str (-> @state/session :graph-data :percentage-success) "%")]]
-       [:tr
-        [:td "Min wounds: "]
-        [:td (-> @state/session :graph-data :min-damage)]]
-       [:tr
-        [:td "Max wounds: "]
-        [:td (-> @state/session :graph-data :max-damage)]]
+        [:td "No Save"]
+        [:td (str (-> @state/session :graph-data :percentage-not-save) "%")]]
        ;; [:tr
+       ;;  [:td "Success"]
+       ;;  [:td (str (-> @state/session :graph-data :percentage-success) "%")]]
+        ;; [:tr
        ;;  [:td "Average wounds: "]
        ;;  [:td (-> @state/session :graph-data :avg-damage)]]
        ;; [:tr
@@ -405,22 +405,33 @@
        ]]]))
 
 (defn table-damage []
-  (let  [damage-percentage (take 10 (-> @state/session :graph-data :damage-percentage))]
-    (when (-> @state/session :show-table)
+  (when (-> @state/session :show-table)
+    (let [stats (-> @state/session :graph-data :damage-stats)]
       [:div
        [:table.table
         [:thead
-         [:th "N. wounds:"]
-         [:th "Percentage:"]
+         [:th "Damage"]
+         [:th "Value"]
          ]
         [:tbody
-         (for [d damage-percentage]
-           [:tr
-            [:td (first d)]
-            [:td (second d)]
-            ]
-           )]]]
-      ))
+         [:tr
+          [:td "Min"]
+          [:td (:Min stats)]]
+         [:tr
+          [:td "Q1"]
+          [:td (:Q1 stats)]]
+         [:tr
+          [:td "Median"]
+          [:td (:Median stats)]]
+         [:tr
+          [:td "Q3"]
+          [:td (:Q3 stats)]]
+         [:tr
+          [:td "Max"]
+          [:td (:Max stats)]]
+
+         ]]])
+    )
   )
 
 (defn home-page []
@@ -452,7 +463,7 @@
                             id           (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
                             hit-rule-str (first (filter #(= (:id %) id) state/hit-rules))
                             hit-rule     (get rule->key (:value (js->clj hit-rule-str)))]
-
+                        (println "hit rule" hit-rule)
                         (swap! state/session assoc :hit-rule hit-rule))) "hit-rules")]
          [:div.column
           (dropdown "Wounds rules"
@@ -552,9 +563,9 @@
 
    (graph)
    [:div.columns
-    ;; [:div.column
-    ;;  (table-stats)]
-    ;;[:div.column (table-damage)]
+    [:div.column
+     (table-stats)]
+    [:div.column (table-damage)]
     (simulation-stats)]])
 
 (def pages

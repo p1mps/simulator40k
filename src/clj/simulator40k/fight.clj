@@ -149,13 +149,16 @@
                           r)))))
 
 
-(defn hit? [{{:keys [bs]} :chars} {:keys [hit-rule]}]
+(defn hit? [{{:keys [bs]} :chars} hit-rule]
   ;;(println "type of re-rolls applied to hit" hit-rules)
-  (let [r ((get-hit-roll-fn hit-rule (read-bs bs)))]
-    {:hit (success? r (read-bs bs))
-     :roll r}
+  (if (= hit-rule :auto-hit)
+    {:hit true
+     :roll 6}
+    (let [r ((get-hit-roll-fn hit-rule (read-bs bs)))]
+      {:hit  (success? r (read-bs bs))
+       :roll r}
 
-      ))
+      )))
 
 ;; TODO check double strength weapon
 ;; check more than double
@@ -214,7 +217,7 @@
   (for [w wounds]
     (if (:wound w)
       (assoc w :saved (save? weapon target))
-      (assoc w :saved false))))
+      (assoc w :saved true))))
 
 (defn all-damage [shoots weapon]
   (map #(assoc % :damage
@@ -345,84 +348,78 @@
   (sort (map #(reduce + (map :damage %))
              experiments)))
 
+(defn quantile [q xs]
+  (let [n (dec (count xs))
+        i (-> (* n q)
+              (+ 1/2)
+              (int))]
+    (nth (sort xs) i)))
+
 (defn compute-stats [experiments]
-  {:experiments experiments
-   :damage-stats (stats/stats-map (get-damage experiments))
-   :damage (set (sort (get-damage experiments)))
-   :damage-percentage (reverse (sort-by val
-                                        (reduce (fn [result value]
-                                                  (assoc result (first value) (percentage (count experiments) (second value))))
-                                                {}
-                                                (frequencies (get-damage experiments)))))
-   :avg-damage
-   (/ (float (reduce + (get-damage experiments)))
-      (count experiments))
+  (let [damage (drop-last (sort (get-damage experiments)))]
+    {:experiments      experiments
+     :damage-stats     (stats/stats-map damage)
+     :damage           damage
 
-   :mode-damage
-   (mode (get-damage experiments))
+     ;; :success
+     ;; (total-success experiments true)
+
+     ;; :not-success
+     ;; (total-success experiments false)
+
+     ;; :wounds
+     ;; (total-wounds experiments true)
+
+     ;; :not-wounds
+     ;; (total-wounds experiments false)
+
+     :percentage-success (format "%.2f"
+                                 (float (percentage
+                                         (reduce +
+                                                 (map count experiments))
+                                         (total-success experiments true)
+                                         )))
 
 
-   :success
-   (total-success experiments true)
+     :percentage-hit (format "%.2f"
+                             (float (percentage
+                                     (reduce +
+                                             (map count experiments))
 
-   :not-success
-   (total-success experiments false)
+                                     (total-hits experiments true)
+                                     )))
 
-   :wounds
-   (total-wounds experiments true)
-
-   :not-wounds
-   (total-wounds experiments false)
-
-   :max-damage
-   (apply max (get-damage experiments))
-
-   :min-damage
-   (apply min (get-damage experiments))
-
-   :percentage-success (format "%.2f"
+     :percentage-wound (format "%.2f"
                                (float (percentage
                                        (reduce +
                                                (map count experiments))
-                                       (total-success experiments true)
+
+                                       (total-wounds experiments true)
                                        )))
 
+     :percentage-not-save (format "%.2f"
+                                  (float (percentage
+                                          (reduce +
+                                                  (map count experiments))
 
-   :percentage-hit (format "%.2f"
-                           (float (percentage
-                                   (reduce +
-                                           (map count experiments))
+                                          (total-saves experiments false)
+                                          )))
 
-                                   (total-hits experiments true)
-                                   )))
+     ;; :hits
+     ;; (total-hits experiments true)
 
-   :percentage-wound (format "%.2f"
-                           (float (percentage
-                                   (reduce +
-                                           (map count experiments))
+     ;; :not-hits
+     ;; (total-hits experiments false)
 
-                                   (total-wounds experiments true)
-                                   )))
+     ;; :saves
+     ;; (total-saves experiments true)
 
-   :percentage-not-save (format "%.2f"
-                           (float (percentage
-                                   (reduce +
-                                           (map count experiments))
+     ;; :not-saves
+     ;; (total-saves experiments false)
 
-                                   (total-saves experiments false)
-                                   )))
+     }
 
-   :hits
-   (total-hits experiments true)
-
-   :not-hits
-   (total-hits experiments false)
-
-   :saves
-   (total-saves experiments true)
-
-   :not-saves
-   (total-saves experiments false)})
+    ))
 
 
 
