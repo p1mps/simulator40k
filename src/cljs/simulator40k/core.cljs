@@ -240,7 +240,9 @@
       {:type      "text" :value (-> @state/session :defender-model :chars :t)
        :on-change (fn [e]
                     (swap! state/session assoc-in [:defender-model :chars :t] (-> e .-target .-value)))}]]
+    [:p [:b "Wounds: "] (-> @state/session :defender-model :chars :w)]
     [:p "(if Invuln save set AP 0)"]
+
     (-> @state/session :defender-model :chars :description)]])
 
 (defn models []
@@ -345,7 +347,7 @@
                         :showlegend true
                         :name       "success"
                         :type       "bar"}
-                       ])(clj->js {:title      "% Hit Wound Save Success"
+                       ])(clj->js {:title      "% Hit Wound No Save Success"
                                    :yaxis      {:title {:text "Percentage"}}
                                    :responsive true}))
 
