@@ -54,7 +54,6 @@
 
 ;; roll 6 3
 
-
 (defn roll [dice]
   (cond
     (> dice 6) 0
@@ -149,14 +148,16 @@
                           r)))))
 
 
-(defn hit? [{{:keys [bs]} :chars} hit-rule]
+(defn hit? [{{:keys [bs]} :chars} hit-rule n-attacks]
   ;;(println "type of re-rolls applied to hit" hit-rules)
   (if (= hit-rule :auto-hit)
-    {:hit true
-     :roll 6}
+    {:n-attacks n-attacks
+     :hit true
+     :roll-hit 6}
     (let [r ((get-hit-roll-fn hit-rule (read-bs bs)))]
       {:hit  (success? r (read-bs bs))
-       :roll r}
+       :n-attacks n-attacks
+       :roll-hit r}
 
       )))
 
@@ -175,7 +176,10 @@
 (defn wound? [weapon target-model {:keys [wound-rule]}]
   (let [to-wound (to-wound weapon target-model)
         r ((get-hit-roll-fn wound-rule to-wound))]
-    (success? r to-wound)
+    {:roll-wound r
+     :wound (success? r to-wound)
+     :to-wound to-wound}
+
     ))
 
 (defn valid-value [value]
@@ -194,13 +198,17 @@
 (defn save? [weapon target-model]
   (let [to-roll (to-save target-model weapon)
         r (roll 6)]
-    (>= r to-roll)))
+    {:roll-save r
+     :to-save to-roll
+     :saved (success? r to-roll)}
+    ))
 
 (defn damage [{{:keys [d]} :chars}]
   d)
 
 (defn all-models-hit [model weapon {:keys [hit-rule]}]
-  (let [rolls (repeat (* (roll-dice (:weapon-attacks weapon)) (read-string (:number model)))  (hit? model hit-rule))]
+  (let [n-attacks (* (roll-dice (:weapon-attacks weapon)) (read-string (:number model)))
+        rolls (repeatedly n-attacks  #(hit? model hit-rule n-attacks))]
     (if (= hit-rule :exploding-6s)
       (let [n6s (count (filter #{6} (map :roll rolls)))]
         (concat rolls (repeat n6s {:hit  true
@@ -209,15 +217,13 @@
 
 (defn all-hits-wound [hits weapon target-unit rules]
   (for [h hits]
-    (if (:hit h)
-      (assoc h :wound (wound? weapon target-unit rules))
-      (assoc h :wound false))))
+    (merge h (wound? weapon target-unit rules))
+    ))
 
 (defn all-wounds-save [wounds weapon target]
   (for [w wounds]
-    (if (:wound w)
-      (assoc w :saved (save? weapon target))
-      (assoc w :saved true))))
+    (merge w (save? weapon target))
+    ))
 
 (defn all-damage [shoots weapon]
   (map #(assoc % :damage
@@ -354,13 +360,55 @@
               (+ 1/2)
               (int))]
     (nth (sort xs) i)))
+(def latest-experiments (atom nil))
+
+
+(defn get-exp [rolls k]
+  (map k rolls))
+
+(last
+ (sort (->>
+        (map
+
+         #(get-exp % :damage)
+         @latest-experiments
+
+         )
+        (map #(reduce + %)))))
+
+
+(->> (map (partial sort-by :damage) @latest-experiments)
+     (map last)
+     (map :damage))
+
+(map
+
+             #(get-exp % :n-attacks)
+             @latest-experiments
+
+             )
+
+
+(defn roll-keys [experiment]
+  (select-keys experiment [:roll-hit :roll-save :roll-wound]))
+
+
+(defn get-rolls [experiments]
+  (let [all-rolls
+        (mapcat
+         #(map roll-keys %)  experiments)]
+    (concat (map :roll-hit all-rolls)
+            (map :roll-wound all-rolls)
+            (map :roll-save all-rolls))))
+
 
 (defn compute-stats [experiments]
-  (let [damage (drop-last (sort (get-damage experiments)))]
+  (reset! latest-experiments experiments)
+  (let [damage (sort (get-damage experiments))]
     {:experiments      experiments
      :damage-stats     (stats/stats-map damage)
      :damage           damage
-
+     :rolls            (frequencies (get-rolls experiments))
      ;; :success
      ;; (total-success experiments true)
 

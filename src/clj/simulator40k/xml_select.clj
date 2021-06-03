@@ -9,6 +9,14 @@
    :selection
    (zx/attr= :type "model")))
 
+(defn unit-upgrade->model [unit]
+  (zx/xml->
+   unit
+   :profiles
+   :profile
+   (zx/attr= :typeName "Unit")
+))
+
 (defn unit->models-as-upgrades [unit]
   (zx/xml->
    unit
@@ -31,6 +39,14 @@
    :selection
    (zx/attr= :type "unit")))
 
+(defn units-as-upgrades [force]
+  (zx/xml->
+   force
+   :force
+   :selections
+   :selection
+   (zx/attr= :type "upgrade")))
+
 (defn forces->force [forces]
   (zx/xml->
    forces))
@@ -42,6 +58,22 @@
    :selections
    :selection
    (zx/attr= :type "model")))
+
+
+(defn models-upgrades [force]
+  (zx/xml->
+   force
+   :force
+   :selections
+   :selection
+   (zx/attr= :type "upgrade")
+   ))
+
+(defn unit-as-upgrade-characteristcs [unit]
+  (zx/xml->
+   unit
+   :characteristics
+))
 
 (defn forces [zipper]
   (zx/xml->

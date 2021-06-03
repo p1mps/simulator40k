@@ -3,7 +3,8 @@
    [clojure.data.zip.xml :as zx]
    [simulator40k.xml-select :as xml-select]
    [simulator40k.zip-reader :as zip-reader]
-   ))
+
+   [clojure.xml :as xml]))
 
 ;; TODO: remove Game type from parsed
 
@@ -102,26 +103,45 @@
 
           ) weapons))
 
+(defn remove-battle-size [models]
+  (remove #(= (:name %) "Battle Size") models))
+
+
 (defn get-models [force]
-  (for [m (xml-select/models force)]
-    {:name  (attrs-name (first m))
-     :model true
-     :models
-     (assoc-ids (list {:name    (attrs-name (first m))
-                       :number  (:number (:attrs (first m)))
-                       :chars   (characteristics  m)
-                       :weapons (assoc-weapon-attacks
-                                 (assoc-ids (concat (unit-weapons m) (weapons m))))}))}))
+  (remove-battle-size
+   (for [m (concat (xml-select/models force) (xml-select/models-upgrades force))]
+     {:name  (attrs-name (first m))
+      :model true
+      :models
+      (assoc-ids (list {:name    (attrs-name (first m))
+                        :number  (:number (:attrs (first m)))
+                        :chars   (characteristics  m)
+                        :weapons (assoc-weapon-attacks
+                                  (assoc-ids (concat (unit-weapons m) (weapons m))))}))})))
+
+
+(comment
+
+
+  (def file "/Users/andreaimparato/Downloads/1500_pt (1).rosz")
+
+  (filter #(= (:name %) "Plagueburst Crawleraa")
+          (:units (first (parse file))))
+
+  )
+
+
 
 (defn get-units [force]
   (for [u (xml-select/units force)]
     {:name
      (attrs-name (first u))
-
-     :unit   true
      :models (filter #(:m (:chars %))
-                     (assoc-ids (for [m (concat (xml-select/unit->models-as-upgrades u)
-                                                (xml-select/unit->models u))]
+                     (assoc-ids (for [m (concat
+                                         (xml-select/unit-upgrade->model  u)
+                                         (xml-select/unit->models-as-upgrades u)
+                                         (xml-select/unit->models u)
+                                         (xml-select/unit-upgrade->model u))]
                                   {:name    (attrs-name (first m))
                                    :number  (:number (:attrs (first m)))
                                    :chars   (characteristics  m)
@@ -171,22 +191,3 @@
   ;; TODO: generate random xml name file
   (let [file (zip-reader/unzip-file file-rosz "output.xml")]
     (file->edn file)))
-
-(comment
-
-  (->
-
-   (mapcat :units (parse "spacemarines.rosz"))
-   (assoc-ids))
-
-  (unzip-file "spacemarines.rosz" "spacemarines.ros")
-
-  (clojure.string/join "" (drop-last "hello"))
-
-  (def file (slurp "spacemarines.ros"))
-
-  (def zipper (zipper file))
-
-  (def forces (forces zipper))
-
-  (parse "spacemarines.rosz"))

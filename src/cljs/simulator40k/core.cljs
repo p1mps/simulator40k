@@ -28,7 +28,6 @@
      [:p (str "Damage rule " (:damage-rule @state/session))]
 
      [:p [:b (str "Damage: " ) ]
-      (str (map #(reduce + (map :damage %)) (-> @state/session :experiments)))
       (str (-> @state/session :graph-data :damage))
       (-> @state/session :graph-data :damage-stats)]
 
@@ -39,11 +38,15 @@
   )
 
 (defn graph []
-  [:div.columns
-   [:div.column
-    [:div {:id "graph"}]]
-   [:div.column
-    [:div {:id "graph-damage"}]]
+  [:div
+
+   [:div.columns
+    [:div.column
+     [:div {:id "graph"}]]
+    [:div.column
+     [:div {:id "graph-damage"}]]
+    ]
+
    ])
 
 ;;SECOND PAGE
@@ -72,14 +75,14 @@
                                            model-id        (-> selected-option .-idmodel .-value)]
                                        (println "selected " force-id unit-id model-id k belong-to)
                                        (set-model! force-id unit-id model-id k belong-to))}
-     (for [m models]
-       [:optgroup  {:key   (str m (:id (:unit m)))
-                    :label (:name (:unit m))}
-        [:option
-         {:key     (str m)
-          :idforce (:id (:force m))
-          :idunit  (:id (:unit m))
-          :idmodel (:id (:model m))} (:name (:model m))]])]]])
+     (for [m (sort-by (comp :name :model) models)]
+       ;; [:optgroup  {:key   (str m (:id (:unit m)))
+       ;;              :label (:name (:unit m))}]
+       [:option
+        {:key     (str m)
+         :idforce (:id (:force m))
+         :idunit  (:id (:unit m))
+         :idmodel (:id (:model m))} (:name (:model m))])]]])
 
 (def num-rules
   (r/atom
@@ -372,6 +375,17 @@
                      (clj->js {:title "Damage"
                                :yaxis      {:title {:text "Damage"}}}))
 
+  (js/Plotly.newPlot (.getElementById js/document "graph-rolls")
+                     (clj->js
+                      [{
+                        :x    (map first (-> @state/session :graph-data :rolls))
+                        :y    (map second (-> @state/session :graph-data :rolls))
+
+                        :type "bar"}])
+                     (clj->js {:title "rolls"
+                               :yaxis      {:title {:text "n. rolls"}}}))
+
+
   (swap! state/session assoc :fight-error false)
   (swap! state/session assoc :show-loader-fight  false))
 
@@ -566,7 +580,10 @@
     [:div.column
      (table-stats)]
     [:div.column (table-damage)]
-    (simulation-stats)]])
+
+    (simulation-stats)]
+   [:div.margin {:id "graph-rolls"
+          }]])
 
 (def pages
   {:home #'home-page})
