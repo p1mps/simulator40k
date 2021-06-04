@@ -75,7 +75,7 @@
                                            model-id        (-> selected-option .-idmodel .-value)]
                                        (println "selected " force-id unit-id model-id k belong-to)
                                        (set-model! force-id unit-id model-id k belong-to))}
-     (for [m (sort-by (comp :name :model) models)]
+     (for [m models]
        ;; [:optgroup  {:key   (str m (:id (:unit m)))
        ;;              :label (:name (:unit m))}]
        [:option
@@ -361,16 +361,17 @@
                      (clj->js
                       [{
                         :name ""
-                        :boxpoints false
+                        ;;:boxpoints false
                         ;;:width "100px"
                         ;;:heigth "100px"
                         ;;:orientation "h"
                         ;;:mode "markers"
-                        :lowerfence [(:Min (-> @state/session :graph-data :damage-stats))]
-                        :q1 [(:Q1 (-> @state/session :graph-data :damage-stats))]
-                        :median [(:Median (-> @state/session :graph-data :damage-stats))]
-                        :q3 [(:Q3 (-> @state/session :graph-data :damage-stats))]
-                        :upperfence [(:Max (-> @state/session :graph-data :damage-stats))(-> @state/session :graph-data :max-damage)]
+                        :y (-> @state/session :graph-data :damage)
+                        ;; :lowerfence [(:Min (-> @state/session :graph-data :damage-stats))]
+                        ;; :q1 [(:Q1 (-> @state/session :graph-data :damage-stats))]
+                        ;; :median [(:Median (-> @state/session :graph-data :damage-stats))]
+                        ;; :q3 [(:Q3 (-> @state/session :graph-data :damage-stats))]
+                        ;; :upperfence [(:Max (-> @state/session :graph-data :damage-stats))(-> @state/session :graph-data :max-damage)]
                         :type "box"}])
                      (clj->js {:title "Damage"
                                :yaxis      {:title {:text "Damage"}}}))
@@ -579,11 +580,12 @@
    [:div.columns
     [:div.column
      (table-stats)]
-    [:div.column (table-damage)]
+
+    [:div.column [:div {:id "graph-rolls"
+          }]]
 
     (simulation-stats)]
-   [:div.margin {:id "graph-rolls"
-          }]])
+   ])
 
 (def pages
   {:home #'home-page})

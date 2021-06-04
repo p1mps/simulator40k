@@ -4,7 +4,8 @@
    [simulator40k.xml-select :as xml-select]
    [simulator40k.zip-reader :as zip-reader]
 
-   [clojure.xml :as xml]))
+   [clojure.xml :as xml]
+   [clojure.string :as string]))
 
 ;; TODO: remove Game type from parsed
 
@@ -89,105 +90,100 @@
       result)))
 
 (defn assoc-weapon-attacks [weapons]
-  (map #(cond
-          (= "Melee" (-> % :chars :type)) (assoc % :weapon-attacks (:a %))
-          (or
-           (clojure.string/includes? (-> % :chars :type) "Grenade")
-           (clojure.string/includes? (-> % :chars :type) "Heavy")
-           (clojure.string/includes? (-> % :chars :type) "Pistol"))
-          (assoc % :weapon-attacks (-> (clojure.string/replace (-> % :chars :type) #"Grenade|Heavy|Pistol" "")
-                                       (clojure.string/replace #"\s+" ""
-                                        )))
-          :else
-          (assoc % :weapon-attacks "1")
+  ;; (map #(cond
+  ;;         (= "Melee" (-> % :chars :type)) (assoc % :weapon-attacks (:a (:chars %)))
+  ;;         (or
+  ;;          (clojure.string/includes? (-> % :chars :type) "Grenade")
+  ;;          (clojure.string/includes? (-> % :chars :type) "Heavy")
+  ;;          (clojure.string/includes? (-> % :chars :type) "Pistol"))
+  ;;         (assoc % :weapon-attacks (-> (clojure.string/replace (-> % :chars :type) #"Grenade|Heavy|Pistol" "")
+  ;;                                      (clojure.string/replace #"\s+" ""
+  ;;                                       )))
+  ;;         :else
+  ;;         (assoc % :weapon-attacks "1")
 
-          ) weapons))
-
-(defn remove-battle-size [models]
-  (remove #(= (:name %) "Battle Size") models))
+  ;;         ) weapons)
 
 
-(defn get-models [force]
-  (remove-battle-size
-   (for [m (concat (xml-select/models force) (xml-select/models-upgrades force))]
-     {:name  (attrs-name (first m))
-      :model true
-      :models
-      (assoc-ids (list {:name    (attrs-name (first m))
-                        :number  (:number (:attrs (first m)))
-                        :chars   (characteristics  m)
-                        :weapons (assoc-weapon-attacks
-                                  (assoc-ids (concat (unit-weapons m) (weapons m))))}))})))
+  (map #(assoc % :weapon-attacks (-> % :chars :type)) weapons)
 
-
-(comment
-
-
-  (def file "/Users/andreaimparato/Downloads/1500_pt (1).rosz")
-
-  (filter #(= (:name %) "Plagueburst Crawleraa")
-          (:units (first (parse file))))
 
   )
 
+(defn remove-battle-size [models]
+  (remove #(or (string/includes? (:name %) "Detachment")
+               (string/includes? (:name %) "Stat")
+               (string/includes? (:name %) "Imperial")
+               (string/includes? (:name %) "Chapter")
+               (string/includes? (:name %) "Doctrine")
+               (string/includes? (:name %) "Size")) models))
+
+
+(defn models-models [force]
+  (distinct (for [m (concat (xml-select/models force) (xml-select/models-upgrades force))]
+              {:name (attrs-name (first m))
+               :models
+               (remove-battle-size (list {:name    (attrs-name (first m))
+                                          :number  (:number (:attrs (first m)))
+                                          :chars   (characteristics  m)
+                                          :weapons (assoc-weapon-attacks
+                                                    (assoc-ids (concat (unit-weapons m) (weapons m))))}))})))
+
+
+
+
+
+(defn unit-models [u]
+  (set (for [m (concat
+                (xml-select/unit-upgrade->model  u)
+                (xml-select/unit->models-as-upgrades u)
+                (xml-select/unit->models u)
+                (xml-select/unit-upgrade->model u))]
+         {:name    (attrs-name (first m))
+          :number  (:number (:attrs (first m)))
+          :chars   (characteristics  m)
+          :weapons (assoc-weapon-attacks
+                    (assoc-ids (concat (unit-weapons u) (weapons m))))})))
+
+(defn get-models [f]
+  (->> (models-models f)
+       (map #(update % :models assoc-ids))))
 
 
 (defn get-units [force]
-  (for [u (xml-select/units force)]
-    {:name
-     (attrs-name (first u))
-     :models (filter #(:m (:chars %))
-                     (assoc-ids (for [m (concat
-                                         (xml-select/unit-upgrade->model  u)
-                                         (xml-select/unit->models-as-upgrades u)
-                                         (xml-select/unit->models u)
-                                         (xml-select/unit-upgrade->model u))]
-                                  {:name    (attrs-name (first m))
-                                   :number  (:number (:attrs (first m)))
-                                   :chars   (characteristics  m)
-                                   :weapons (assoc-weapon-attacks
-                                             (assoc-ids (concat (unit-weapons u) (weapons m))))})))}))
+  (->> (distinct (for [u (xml-select/units force)]
+                   {:name
+                    (attrs-name (first u))
+                    :models (unit-models u)}))
+
+      (map #(update % :models assoc-ids))))
 
 (defn edn [forces]
   (assoc-ids (for [f forces]
                {:force-name (attrs-name (first f))
                 ;; TODO: units must be unique (use sets)
-                :units      (assoc-ids (concat (get-models f) (get-units f)))})))
+                :units      (assoc-ids (set (concat (get-models f) (get-units f))))})))
 
-
-;; TODO: we change the data we got from battescribe
-
-
-(defn find-unique-models [unit unique-models]
-  (filter #(= (:unit %) unit) unique-models))
-
-(defn remove-found-model [model models]
-  (remove #(= (:name %) (:name model)) models))
-
-(defn final-result [forces]
-  (let [unique-models (distinct (flatten (for [f forces]
-                                           (for [u (:units f)]
-                                             (for [m (:models u)]
-                                               {:unit u
-                                                :model
-                                                (if (> (read-string (:number m)) 1)
-                                                  (assoc (dissoc m :id) :name (str (:name m) " x " (:number m)))
-                                                  (dissoc m :id))})))))]
-    (for [f forces]
-      (assoc f :units
-             (for [u (:units f)]
-               (assoc u :models
-                      (assoc-ids
-                       (map :model (find-unique-models u unique-models)))))))))
 
 (defn file->edn [file]
   (-> file
       zip-reader/zipper
       xml-select/forces
       edn
-      final-result))
+      ))
 
 (defn parse [file-rosz]
   ;; TODO: generate random xml name file
   (let [file (zip-reader/unzip-file file-rosz "output.xml")]
     (file->edn file)))
+
+
+
+(comment
+
+
+  (def file "/Users/andreaimparato/Downloads/custTourney.rosz")
+
+  (parse file)
+
+  )
