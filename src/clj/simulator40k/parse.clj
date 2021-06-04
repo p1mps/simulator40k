@@ -116,34 +116,36 @@
                (string/includes? (:name %) "Imperial")
                (string/includes? (:name %) "Chapter")
                (string/includes? (:name %) "Doctrine")
+               (string/includes? (:name %) "Grenades")
                (string/includes? (:name %) "Size")) models))
 
 
 (defn models-models [force]
-  (distinct (for [m (concat (xml-select/models force) (xml-select/models-upgrades force))]
-              {:name (attrs-name (first m))
-               :models
-               (remove-battle-size (list {:name    (attrs-name (first m))
+  (remove-battle-size (distinct (for [m (concat (xml-select/models force) (xml-select/models-upgrades force))]
+                                  {:name (attrs-name (first m))
+                                   :models
+                                   (list {:name    (attrs-name (first m))
                                           :number  (:number (:attrs (first m)))
                                           :chars   (characteristics  m)
                                           :weapons (assoc-weapon-attacks
-                                                    (assoc-ids (concat (unit-weapons m) (weapons m))))}))})))
+                                                    (assoc-ids (concat (unit-weapons m) (weapons m))))})}))))
 
 
 
 
 
 (defn unit-models [u]
-  (set (for [m (concat
-                (xml-select/unit-upgrade->model  u)
-                (xml-select/unit->models-as-upgrades u)
-                (xml-select/unit->models u)
-                (xml-select/unit-upgrade->model u))]
-         {:name    (attrs-name (first m))
-          :number  (:number (:attrs (first m)))
-          :chars   (characteristics  m)
-          :weapons (assoc-weapon-attacks
-                    (assoc-ids (concat (unit-weapons u) (weapons m))))})))
+  (set (remove-battle-size
+        (for [m (concat
+                                   (xml-select/unit-upgrade->model  u)
+                                   (xml-select/unit->models-as-upgrades u)
+                                   (xml-select/unit->models u)
+                                   (xml-select/unit-upgrade->model u))]
+                            {:name    (attrs-name (first m))
+                             :number  (:number (:attrs (first m)))
+                             :chars   (characteristics  m)
+                             :weapons (assoc-weapon-attacks
+                                       (assoc-ids (concat (unit-weapons u) (weapons m))))}))))
 
 (defn get-models [f]
   (->> (models-models f)
