@@ -14,6 +14,7 @@
           :on-click (fn [_]
                       (dom/remove-children "graph")
                       (dom/remove-children "graph-damage")
+                      (dom/remove-children "graph-rolls")
 
                       (reset! state/session state/empty-state))}
      [:h6 "Simulator 40k"]]]]])

@@ -37,6 +37,10 @@
      ])
   )
 
+(defn graph-rolls []
+  [:div {:id "graph-rolls"}]
+  )
+
 (defn graph []
   [:div
 
@@ -519,9 +523,7 @@
            {:name     "fight"
             :on-click (fn [e]
                         (.preventDefault e)
-                        ;;(dom/remove-children "graph")
-                        ;;(dom/remove-children "graph-damage")
-                        (:show-loader @state/session)
+                         ;;(:show-loader @state/session)
                         (swap! state/session assoc :show-loader-fight true)
                         (let [attacker (:attacker-model @state/session)
                               attacker (assoc
@@ -535,6 +537,7 @@
                                                               :n        (:runs @state/session)}
                                               :handler       handler-fight
                                               :error-handler handler-error-fight})
+
                           (swap! state/session assoc :show-table false))
                         )
             }
@@ -581,8 +584,8 @@
     [:div.column
      (table-stats)]
 
-    [:div.column [:div {:id "graph-rolls"
-          }]]
+    [:div.column
+     (graph-rolls)]
 
     (simulation-stats)]
    ])
