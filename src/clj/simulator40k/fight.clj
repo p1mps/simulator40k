@@ -147,6 +147,48 @@
                           (roll 6)
                           r)))))
 
+(defn re-roll-dice? [roll _]
+  (< roll 3))
+
+(parse-dice "2D6")
+
+
+(defn get-rerollable-shots [rolls]
+  (keep-indexed (fn [idx v] (when (< v 3) idx)) rolls))
+
+(defn all-rerolls [rolls idx-re-rollable dice]
+  (reduce (fn [result value]
+            (assoc result value (roll dice))
+            )
+          rolls
+          idx-re-rollable))
+
+(defn get-number-shots-fn [number-shot-rule number-attacks]
+  (condp = number-shot-rule
+    nil (fn [] [(roll-dice number-attacks)])
+    :re-roll-1s (fn [] (let [parsed-dice (parse-dice number-attacks)
+                            _ (println parsed-dice)
+                            rolls       (vec (repeatedly (:times parsed-dice) #(roll (:dice parsed-dice))))
+                            _ (println rolls)
+                            re-rollable (get-rerollable-shots rolls)
+                            _ (println "rerollable " re-rollable)]
+                        (if (not-empty re-rollable)
+                          (assoc rolls (first re-rollable) (roll (:dice parsed-dice)))
+                          rolls)))
+    :re-roll-all (fn [] (let [parsed-dice (parse-dice number-attacks)
+                            _ (println parsed-dice)
+                            rolls       (vec (repeatedly (:times parsed-dice) #(roll (:dice parsed-dice))))
+                            _ (println rolls)
+                            re-rollable (get-rerollable-shots rolls)
+                            _ (println "rerollable all" re-rollable)]
+                        (if (not-empty re-rollable)
+                          (all-rerolls rolls re-rollable (:dice parsed-dice)
+                           )
+                          rolls)))))
+
+
+((get-number-shots-fn :re-roll-1s "2D6"))
+
 
 (defn hit? [{{:keys [bs]} :chars} hit-rule n-attacks]
   ;;(println "type of re-rolls applied to hit" hit-rules)
@@ -206,8 +248,8 @@
 (defn damage [{{:keys [d]} :chars}]
   d)
 
-(defn all-models-hit [model weapon {:keys [hit-rule]}]
-  (let [n-attacks (* (roll-dice (:weapon-attacks weapon)) (read-string (:number model)))
+(defn all-models-hit [model weapon {:keys [hit-rule number-shot-rule]}]
+  (let [n-attacks (* (reduce + ((get-number-shots-fn number-shot-rule (:weapon-attacks weapon)))) (read-string (:number model)))
         rolls (repeatedly n-attacks  #(hit? model hit-rule n-attacks))]
     (if (= hit-rule :exploding-6s)
       (let [n6s (count (filter #{6} (map :roll rolls)))]

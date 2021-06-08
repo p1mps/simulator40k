@@ -26,7 +26,7 @@
      [:p (str "Wound rule " (:wound-rule @state/session))]
      [:p (str "Ap rule " (:ap-rule @state/session))]
      [:p (str "Damage rule " (:damage-rule @state/session))]
-
+     [:p (str "Number shot rule " (:number-shot-rule @state/session))]
      [:p [:b (str "Damage: " ) ]
       (str (-> @state/session :graph-data :damage))
       (-> @state/session :graph-data :damage-stats)]
@@ -498,9 +498,16 @@
                     "wound-rules")]
 
          [:div.column
-          (dropdown "Damage rules"
-                    state/damage-rules
-                    (fn [e] ()) "damage-rules")]
+          (dropdown "Number of shots"
+                    state/number-shot-rules
+                    (fn [event]
+                      (.preventDefault event)
+                      (let [e              (.-target event)
+                            id             (.-value (.-id (.-attributes (aget (.-options e) (.-selectedIndex e)))))
+                            number-shot-rule-str (first (filter #(= (:id %) id) state/wound-rules))
+                            number-shot-rule     (get rule->key (:value (js->clj number-shot-rule-str)))]
+                        (swap! state/session assoc :number-shot-rule number-shot-rule)))
+                    "number-shot-rules")]
 
          [:div.column
           (dropdown "Ap rules"
@@ -532,7 +539,7 @@
 
                           (POST "/api/fight" {:params        {:attacker attacker
                                                               :defender (:defender-model @state/session)
-                                                              :rules (select-keys @state/session [:hit-rule :wound-rule :ap-rule :damage-rule])
+                                                              :rules (select-keys @state/session [:hit-rule :wound-rule :ap-rule :damage-rule :number-shot-rule])
                                                               :damage-rule  (:damage-rule @state/session)
                                                               :n        (:runs @state/session)}
                                               :handler       handler-fight

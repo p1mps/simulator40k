@@ -11,6 +11,7 @@
    :show-loader-uploader    false
    :hit-rule                nil
    :wound-rule              nil
+   :number-shot-rule        nil
    :ap-rule                 nil
    :damage-rule             nil
    :runs                    number-experiments
@@ -68,6 +69,11 @@
   [{:id "0" :value "None"}
    {:id "1" :value "Double damage on 6's"}
    {:id "2" :value "First wound 0 damage"}])
+
+(def number-shot-rules
+  [{:id "0" :value "None"}
+   {:id "1" :value "Re roll only 1"}
+   {:id "2" :value "Re roll all"}])
 
 (def ap-rules
   [{:id "1" :value "None"}
