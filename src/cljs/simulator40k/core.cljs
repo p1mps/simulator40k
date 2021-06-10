@@ -71,19 +71,20 @@
 (defn dropdown-units [models k belong-to]
   [:div.field
    [:div.select.is-dark.full-width
-    [:select.full-width {:id        (str "select-" belong-to)
+    [:select.full-width {:key       (str "select-" (name belong-to))
+                         :id        (str "select-" (name belong-to))
                          :on-change #(let [select          (.-target %)
                                            selected-option (.-attributes (aget (.-options select) (.-selectedIndex select)))
-                                           force-id        (-> selected-option .-idforce .-value)
-                                           unit-id         (-> selected-option .-idunit .-value)
-                                           model-id        (-> selected-option .-idmodel .-value)]
+                                           force-id         (.-value (.getNamedItem selected-option "idforce"))
+                                           unit-id         (.-value (.getNamedItem selected-option "idunit"))
+                                           model-id        (.-value (.getNamedItem selected-option "idmodel"))]
                                        (println "selected " force-id unit-id model-id k belong-to)
                                        (set-model! force-id unit-id model-id k belong-to))}
      (for [m models]
        ;; [:optgroup  {:key   (str m (:id (:unit m)))
        ;;              :label (:name (:unit m))}]
        [:option
-        {:key     (str m)
+        {:key     (str (:id (:force m)) (:id (:unit m)) (:id (:model m)))
          :idforce (:id (:force m))
          :idunit  (:id (:unit m))
          :idmodel (:id (:model m))} (:name (:model m))])]]])
@@ -463,7 +464,7 @@
          (init-models! (:attacker-roster @state/session) :attacker-unit-models)
          (init-models! (:defender-roster @state/session) :defender-unit-models))
        [:div
-        [:div.columns {:key "dropdowns"}
+        [:div.columns
          [:div.column (dropdown-attacker-units)]
          [:div.column (dropdown-attacker-weapons)]
          [:div.column (dropdown-defender-units)]]
