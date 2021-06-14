@@ -53,34 +53,40 @@
 
 
 (defn upload-rosters []
-  [:form
-   [:div.columns
-    [:div.column
-     (conj (file-roaster :Attacker)
-           (file-roaster :Defender))
-     [:div.column [:button.button.is-dark
-                   {:name     "Upload"
-                    :on-click (fn [e]
-                                (.preventDefault e)
-                                (swap! state/session assoc :show-loader-uploader true)
-                                (let [file-attacker (aget (.-files
-                                                           (.getElementById js/document "Attacker")) 0)
-                                      file-defender (aget (.-files
-                                                           (.getElementById js/document "Defender")) 0)
-                                      form-data     (doto
-                                                        (js/FormData.)
-                                                      (.append "Attacker" file-attacker)
-                                                      (.append "Defender" file-defender))]
-                                  (POST "/api/parse" {:body          form-data
-                                                      :handler       handler-upload
-                                                      :error-handler error-handler}))
-                                )} "Upload"]]
+  [:div [:article.message.is-warning {:id "message"}
+         [:div.message-header
+          [:p "Warning"]
+          [:button.delete {:aria-label "delete"
+                           :on-click (fn [e]
+                                       (.preventDefault e)
+                                       (dom/remove-children "message"))}]]
+         [:div.message-body
+          "Please remove from your rosters all the stratagems, detachment costs etc. Leave just the "
+          [:strong "units."]]]
+   [:form
+    [:div.columns
+     [:div.column
+      (conj (file-roaster :Attacker)
+            (file-roaster :Defender))
+      [:div.column [:button.button.is-dark
+                    {:name     "Upload"
+                     :on-click (fn [e]
+                                 (.preventDefault e)
+                                 (swap! state/session assoc :show-loader-uploader true)
+                                 (let [file-attacker (aget (.-files
+                                                            (.getElementById js/document "Attacker")) 0)
+                                       file-defender (aget (.-files
+                                                            (.getElementById js/document "Defender")) 0)
+                                       form-data     (doto
+                                                         (js/FormData.)
+                                                       (.append "Attacker" file-attacker)
+                                                       (.append "Defender" file-defender))]
+                                   (POST "/api/parse" {:body          form-data
+                                                       :handler       handler-upload
+                                                       :error-handler error-handler}))
+                                 )} "Upload"]]
 
-     (when (:show-loader-uploader @state/session)
-       [:div.column [:div.loader]])
-
-
-
-     (when (:error-upload @state/session)
-       [:div.column [:div.has-background-danger-light "ERROR UPLOAD"]])]]]
-  )
+      (when (:show-loader-uploader @state/session)
+        [:div.column [:div.loader]])
+      (when (:error-upload @state/session)
+        [:div.column [:div.has-background-danger-light "ERROR UPLOAD"]])]]]])
